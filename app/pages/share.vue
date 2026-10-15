@@ -78,6 +78,10 @@ function goToMap() {
   navigateTo('/map')
 }
 
+function goHome() {
+  navigateTo('/')
+}
+
 onMounted(() => {
   if (!me.value) {
     navigateTo('/')
@@ -137,9 +141,14 @@ onBeforeUnmount(() => {
         {{ statusMessage }}
       </p>
 
-      <button class="link-button" @click="goToMap">
-        ดูห่านของฉันบนเมือง 🏙️
-      </button>
+      <div flex="~ col" gap-1>
+        <button class="link-button" @click="goToMap">
+          ดูห่านของฉันบนเมือง 🏙️
+        </button>
+        <button class="link-button" @click="goHome">
+          กลับสู่หน้าหลัก
+        </button>
+      </div>
     </div>
   </main>
 </template>
