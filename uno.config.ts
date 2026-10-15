@@ -24,8 +24,7 @@ export default defineConfig({
     presetTypography(),
     presetWebFonts({
       fonts: {
-        sans: 'DM Sans',
-        serif: 'DM Serif Display',
+        sans: 'Noto Sans Thai',
         mono: 'DM Mono',
       },
       processors: createLocalFontProcessor(),

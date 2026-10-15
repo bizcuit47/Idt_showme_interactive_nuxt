@@ -1,2 +1,4 @@
-export const appName = 'Vitesse for Nuxt 4'
-export const appDescription = 'Vitesse for Nuxt 4'
+export const appName = 'Future Wall'
+export const appDescription = 'วัยรุ่นมีของ Startup Season 6 - ตอบคำถามแล้วดูว่าอนาคตของคุณคือห่านตัวไหน'
+
+export const MAX_NICKNAME_LENGTH = 16

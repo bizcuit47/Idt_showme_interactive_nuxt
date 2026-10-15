@@ -1,17 +1,13 @@
-<script setup lang="ts">
-const router = useRouter()
-</script>
-
 <template>
-  <main p="x4 y10" text="center teal-700 dark:gray-200">
-    <div text-4xl>
-      <div i-carbon-warning inline-block />
+  <main flex="~ col items-center justify-center" bg="[#12132b]" text-white px-6 text-center gap-4 min-h-screen>
+    <div text-5xl>
+      🪿
     </div>
-    <div>Not found</div>
-    <div>
-      <button text-sm btn m="3 t8" @click="router.back()">
-        Back
-      </button>
-    </div>
+    <h1 text-2xl font-bold>
+      ไม่พบหน้านี้
+    </h1>
+    <NuxtLink to="/" font-bold px-6 py-2 rounded-full bg="[#ffd166]" text="[#12132b]">
+      กลับไปเล่น Future Wall
+    </NuxtLink>
   </main>
 </template>

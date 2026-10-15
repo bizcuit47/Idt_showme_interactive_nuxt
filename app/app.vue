@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { appName } from '~/constants'
+import { appDescription, appName } from '~/constants'
 
 useHead({
   title: appName,
+  htmlAttrs: { lang: 'th' },
+  meta: [{ name: 'description', content: appDescription }],
 })
 </script>
 
@@ -17,12 +19,19 @@ useHead({
 html,
 body,
 #__nuxt {
-  height: 100vh;
+  min-height: 100%;
   margin: 0;
   padding: 0;
 }
 
-html.dark {
+html {
   color-scheme: dark;
+  background: #12132b;
+}
+
+body {
+  font-family: 'Noto Sans Thai', system-ui, sans-serif;
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
 }
 </style>
