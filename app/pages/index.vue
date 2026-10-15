@@ -72,8 +72,8 @@ function showResult() {
   step.value = 'result'
 }
 
-function sendToMap() {
-  navigateTo('/map')
+function send() {
+  navigateTo('/share')
 }
 
 function playAgain() {
@@ -119,9 +119,9 @@ function playAgain() {
           <p v-if="nameError" text-sm text="[#ff8fa3]">
             {{ nameError }}
           </p>
-          <button class="button-primary" type="submit">
+          <ButtonPrimary type="submit">
             เริ่มเลย
-          </button>
+          </ButtonPrimary>
         </form>
         <p text-xs leading-relaxed text="white/50">
           เราเก็บเฉพาะชื่อเล่นและคำตอบของคุณ<br>ไม่เก็บรูปหรือข้อมูลติดต่อ
@@ -182,9 +182,9 @@ function playAgain() {
           </p>
         </div>
         <div flex="~ col" mt-2 gap-3 w-full>
-          <button class="button-primary" @click="sendToMap">
+          <ButtonPrimary @click="send">
             ส่งห่านของฉันไปที่เมือง 🏙️
-          </button>
+          </ButtonPrimary>
           <button text-sm py-2 underline text="white/60" @click="playAgain">
             เล่นใหม่
           </button>
@@ -221,23 +221,6 @@ function playAgain() {
 
 .nickname-input:focus {
   box-shadow: inset 0 0 0 2px #ffd166;
-}
-
-.button-primary {
-  padding: 1rem;
-  border: 0;
-  border-radius: 1rem;
-  background: #ffd166;
-  color: #12132b;
-  font: inherit;
-  font-size: 1.125rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
-.button-primary:active {
-  transform: scale(0.96);
 }
 
 .option {

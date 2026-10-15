@@ -47,7 +47,7 @@ export function gooseSvg(avatar: Pick<AvatarDef, 'id' | 'color'>, pose: GoosePos
   const leftFoot = 205 + stride
   const rightFoot = 265 - stride
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <g stroke="${ink}" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
     <path d="M${leftFoot - 8} 410 L${leftFoot + 8} 450 M${rightFoot - 8} 410 L${rightFoot + 8} 450" fill="none" stroke="#ff9f1c" stroke-width="12"/>
     <path d="M${leftFoot - 14} 456 Q${leftFoot + 20} 440 ${leftFoot + 44} 456 Q${leftFoot + 20} 470 ${leftFoot - 14} 456 Z" fill="#ff9f1c"/>
