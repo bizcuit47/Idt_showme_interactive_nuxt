@@ -23,6 +23,10 @@ const question = computed(() => questions[currentIndex.value]!)
 const progressPercent = computed(() => Math.round((currentIndex.value / questions.length) * 100))
 const avatar = computed(() => me.value ? getAvatar(me.value.avatarType) : undefined)
 
+watch(nickname, () => {
+  nameError.value = ''
+})
+
 function start() {
   const error = validateNickname(nickname.value)
   if (error) {
