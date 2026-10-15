@@ -32,3 +32,10 @@ export interface Player {
   answers: number[]
   createdAt: string
 }
+
+export interface WalkBounds {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
