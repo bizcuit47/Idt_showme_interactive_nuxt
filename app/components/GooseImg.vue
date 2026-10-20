@@ -15,10 +15,5 @@ const src = computed(() => avatarImageUrl(avatar.value, pose))
 </script>
 
 <template>
-  <img
-    :src="src"
-    :alt="avatar.title"
-    draggable="false"
-    select-none
-  >
+  <video :src="src" autoplay loop muted playsinline />
 </template>

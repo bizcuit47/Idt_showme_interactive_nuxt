@@ -21,7 +21,6 @@ const gravity = 3200
 const bounceDamping = 0.42
 const minBounceSpeed = 260
 const walkSpeed = 120
-const stepIntervalSeconds = 0.26
 const restChance = 0.25
 const minTravel = 140
 const maxPickAttempts = 6
@@ -31,7 +30,7 @@ const maxWanderY = 160
 const rootElement = useTemplateRef<HTMLElement>('root')
 const shadowElement = useTemplateRef<HTMLElement>('shadow')
 const flipElement = useTemplateRef<HTMLElement>('flip')
-const imageElement = useTemplateRef<HTMLImageElement>('image')
+const imageElement = useTemplateRef<HTMLVideoElement>('image')
 
 const poseUrls = computed(() => {
   const avatar = getAvatar(type)
@@ -51,10 +50,7 @@ let targetY = y
 let dropOffset = isDropping ? -(y + gooseSize * 2) : 0
 let dropVelocity = 0
 let facing = 1
-let stepClock = 0
-let isAlternateStep = false
 let elapsed = 0
-let currentPose: GoosePose = 'stand'
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min)
@@ -120,11 +116,6 @@ function updateWalk(deltaSeconds: number) {
 
   x += (dx / distance) * step
   y += (dy / distance) * step
-  stepClock += deltaSeconds
-  if (stepClock >= stepIntervalSeconds) {
-    stepClock = 0
-    isAlternateStep = !isAlternateStep
-  }
 }
 
 function update(deltaSeconds: number) {
@@ -150,12 +141,6 @@ function update(deltaSeconds: number) {
   render()
 }
 
-function pickPose(): GoosePose {
-  if (phase !== 'walking')
-    return phase === 'dropping' ? 'walk' : 'stand'
-  return isAlternateStep ? 'walk2' : 'walk'
-}
-
 function render() {
   const root = rootElement.value
   const shadow = shadowElement.value
@@ -176,11 +161,6 @@ function render() {
   shadow.style.transform = `translateX(-50%) scale(${1 - airborne * 0.5})`
   flip.style.transform = `translateY(${dropOffset - bounce}px) rotate(${sway}deg) scaleX(${facing})`
 
-  const pose = pickPose()
-  if (pose !== currentPose) {
-    currentPose = pose
-    image.src = poseUrls.value[pose]
-  }
 }
 
 useRafFn(({ delta }) => update(Math.min(delta / 1000, 0.05)))
@@ -199,13 +179,15 @@ onMounted(render)
       {{ nickname }}
     </div>
     <div ref="flip" class="map-walker-flip">
-      <img
+      <video
         ref="image"
         class="map-walker-image"
-        :src="poseUrls.stand"
-        :alt="getAvatar(type).title"
-        draggable="false"
-      >
+        :src="poseUrls.walk"
+        autoplay
+        loop
+        muted
+        playsinline
+      />
     </div>
   </div>
 </template>
