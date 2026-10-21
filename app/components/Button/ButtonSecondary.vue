@@ -12,23 +12,23 @@ const { isDisabled = false } = defineProps<{
 
 <style scoped>
 .button-secondary {
-  padding: 1rem;
-  border: 0;
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 0.12);
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.25);
-  color: #fff;
-  font: inherit;
+  padding: 1rem 2rem;
+  border: var(--fw-border);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: var(--fw-shadow-sm);
+  color: #000;
+  font-family: var(--fw-font-heading);
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  transition:
-    transform 0.15s,
-    opacity 0.15s;
+  transition: all 0.2s var(--fw-push-ease);
 }
 
-.button-secondary:active {
-  transform: scale(0.96);
+.button-secondary:hover:not(:disabled),
+.button-secondary:active:not(:disabled) {
+  box-shadow: 0 0 0 0 #000;
+  transform: translate(4px, 4px);
 }
 
 .button-secondary:disabled {

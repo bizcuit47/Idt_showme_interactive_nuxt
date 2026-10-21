@@ -34,7 +34,7 @@ describe('svgToDataUri', () => {
 })
 
 describe('avatarImageUrl', () => {
-  const placeholder = avatars[0]!
+  const placeholder: AvatarDef = { ...avatars[0]!, images: undefined }
 
   it('falls back to the generated placeholder when no real art is set', () => {
     expect(avatarImageUrl(placeholder, 'walk').startsWith('data:image/svg+xml')).toBe(true)

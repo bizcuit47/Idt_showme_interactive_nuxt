@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { AvatarId, WalkBounds } from '~/types'
-import type { GoosePose } from '~/utils/goose'
+import type { CharacterPainter, GoosePose } from '~/utils/goose'
 
 import { getAvatar } from '~/data/avatars'
-import { avatarImageUrl } from '~/utils/goose'
+import { avatarImageUrl, createCharacterPainter } from '~/utils/goose'
 
 type Phase = 'waiting' | 'dropping' | 'resting' | 'walking'
 
@@ -21,7 +21,6 @@ const gravity = 3200
 const bounceDamping = 0.42
 const minBounceSpeed = 260
 const walkSpeed = 120
-const stepIntervalSeconds = 0.26
 const restChance = 0.25
 const minTravel = 140
 const maxPickAttempts = 6
@@ -31,7 +30,8 @@ const maxWanderY = 160
 const rootElement = useTemplateRef<HTMLElement>('root')
 const shadowElement = useTemplateRef<HTMLElement>('shadow')
 const flipElement = useTemplateRef<HTMLElement>('flip')
-const imageElement = useTemplateRef<HTMLImageElement>('image')
+const imageElement = useTemplateRef<HTMLVideoElement>('image')
+const canvasElement = useTemplateRef<HTMLCanvasElement>('canvas')
 
 const poseUrls = computed(() => {
   const avatar = getAvatar(type)
@@ -51,10 +51,7 @@ let targetY = y
 let dropOffset = isDropping ? -(y + gooseSize * 2) : 0
 let dropVelocity = 0
 let facing = 1
-let stepClock = 0
-let isAlternateStep = false
 let elapsed = 0
-let currentPose: GoosePose = 'stand'
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min)
@@ -120,11 +117,6 @@ function updateWalk(deltaSeconds: number) {
 
   x += (dx / distance) * step
   y += (dy / distance) * step
-  stepClock += deltaSeconds
-  if (stepClock >= stepIntervalSeconds) {
-    stepClock = 0
-    isAlternateStep = !isAlternateStep
-  }
 }
 
 function update(deltaSeconds: number) {
@@ -150,12 +142,6 @@ function update(deltaSeconds: number) {
   render()
 }
 
-function pickPose(): GoosePose {
-  if (phase !== 'walking')
-    return phase === 'dropping' ? 'walk' : 'stand'
-  return isAlternateStep ? 'walk2' : 'walk'
-}
-
 function render() {
   const root = rootElement.value
   const shadow = shadowElement.value
@@ -175,17 +161,30 @@ function render() {
   shadow.style.opacity = String(0.35 * (1 - airborne))
   shadow.style.transform = `translateX(-50%) scale(${1 - airborne * 0.5})`
   flip.style.transform = `translateY(${dropOffset - bounce}px) rotate(${sway}deg) scaleX(${facing})`
+  drawFrame(image)
+}
 
-  const pose = pickPose()
-  if (pose !== currentPose) {
-    currentPose = pose
-    image.src = poseUrls.value[pose]
-  }
+let drawnTime = -1
+let painter: CharacterPainter | null = null
+
+function drawFrame(video: HTMLVideoElement) {
+  if (!painter || video.readyState < 2 || video.currentTime === drawnTime)
+    return
+  drawnTime = video.currentTime
+  painter.draw(video)
 }
 
 useRafFn(({ delta }) => update(Math.min(delta / 1000, 0.05)))
 
-onMounted(render)
+onMounted(() => {
+  const canvas = canvasElement.value
+  if (canvas) {
+    canvas.width = gooseSize
+    canvas.height = gooseSize
+    painter = createCharacterPainter(canvas)
+  }
+  render()
+})
 </script>
 
 <template>
@@ -199,13 +198,16 @@ onMounted(render)
       {{ nickname }}
     </div>
     <div ref="flip" class="map-walker-flip">
-      <img
+      <video
         ref="image"
-        class="map-walker-image"
-        :src="poseUrls.stand"
-        :alt="getAvatar(type).title"
-        draggable="false"
-      >
+        class="map-walker-source"
+        :src="poseUrls.walk"
+        autoplay
+        loop
+        muted
+        playsinline
+      />
+      <canvas ref="canvas" class="map-walker-image" />
     </div>
   </div>
 </template>
@@ -227,6 +229,15 @@ onMounted(render)
   transform-origin: 50% 100%;
 }
 
+.map-walker-source {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .map-walker-image {
   width: 100%;
   height: 100%;
@@ -246,19 +257,21 @@ onMounted(render)
 .map-walker-name {
   position: absolute;
   left: 50%;
-  top: -28px;
-  padding: 4px 18px;
+  top: -34px;
+  padding: 2px 20px;
+  border: 5px solid #000;
   border-radius: 9999px;
-  background: rgb(18 19 43 / 0.75);
-  color: #fff;
+  background: #fff;
+  box-shadow: 6px 6px 0 0 #000;
+  color: #000;
+  font-family: var(--fw-font-heading);
   font-size: 30px;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
   transform: translateX(-50%);
 }
 
 .map-walker-name-self {
-  background: #ffd166;
-  color: #12132b;
+  background: var(--fw-yellow);
 }
 </style>
