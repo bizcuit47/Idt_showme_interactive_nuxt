@@ -8,6 +8,7 @@ export default antfu(
     formatters: true,
     pnpm: true,
     antislop: true,
+    ignores: ['future-wall-plan.md'],
   },
 )
   .append(nuxt())

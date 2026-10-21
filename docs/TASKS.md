@@ -20,6 +20,16 @@ pnpm dev
 
 > ถ้า `pnpm` ฟ้อง version `12.3.4` ไม่เจอ ให้ตั้ง `npm_config_manage_package_manager_versions=false` ก่อนรัน
 
+## ทดสอบ
+
+```bash
+pnpm test
+```
+
+ใช้ Vitest สองชุด: `tests/unit/` (ฟังก์ชันล้วน ๆ เช่น คำนวณผล ตัวกรองชื่อ ข้อมูลคำถาม) และ `tests/nuxt/` (หน้า `/`, `/share`, `/map` และ `useMe` รันใน Nuxt environment) รันตอน push/PR ผ่าน GitHub Actions ด้วย ถ้าแก้ชุดคำถามหรือรายการคำต้องห้าม เทสต์ใน `tests/unit/data.test.ts` จะเช็กให้ว่าข้อมูลครบและไม่ซ้ำ
+
+ระหว่างทดสอบ โมดูล PWA จะถูกปิด (ดู `nuxt.config.ts`) เพราะ virtual module ของมันใช้ในสภาพแวดล้อมเทสต์ไม่ได้
+
 ## สัญญาระหว่างสองหน้า (ห้ามเปลี่ยนโดยไม่บอกกัน)
 
 หน้า 1 เขียน หน้า 2 อ่าน ผ่าน `useMe()` ([app/composables/useMe.ts](../app/composables/useMe.ts))
