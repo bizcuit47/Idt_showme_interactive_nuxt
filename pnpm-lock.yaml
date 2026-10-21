@@ -175,9 +175,6 @@ catalogs:
     pinia:
       specifier: ^4.0.3
       version: 4.0.3
-    qrcode-generator:
-      specifier: ^2.0.4
-      version: 2.0.4
     vue:
       specifier: ^3.5.42
       version: 3.5.42
@@ -270,9 +267,6 @@ importers:
       pinia:
         specifier: catalog:frontend
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
-      qrcode-generator:
-        specifier: catalog:frontend
-        version: 2.0.4
       typescript:
         specifier: catalog:dev
         version: 6.0.3
@@ -5729,9 +5723,6 @@ packages:
   qified@0.10.1:
     resolution: {integrity: sha512-+Owyggi9IxT1ePKGafcI87ubSmxol6smwJ+RAHDQlx9+9cPwFWDiKFFCPuWhr9ignlGpZ9vDQLw67N4dcTVFEA==}
     engines: {node: '>=20'}
-
-  qrcode-generator@2.0.4:
-    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
@@ -13573,8 +13564,6 @@ snapshots:
   qified@0.10.1:
     dependencies:
       hookified: 2.2.0
-
-  qrcode-generator@2.0.4: {}
 
   quansync@0.2.11: {}
 

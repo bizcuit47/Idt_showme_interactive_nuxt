@@ -39,7 +39,6 @@
     "happy-dom": "catalog:dev",
     "nuxt": "catalog:build",
     "pinia": "catalog:frontend",
-    "qrcode-generator": "catalog:frontend",
     "typescript": "catalog:dev",
     "unocss": "catalog:build",
     "vitest": "catalog:dev",
