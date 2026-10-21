@@ -175,6 +175,9 @@ catalogs:
     pinia:
       specifier: ^4.0.3
       version: 4.0.3
+    qrcode-generator:
+      specifier: ^2.0.4
+      version: 2.0.4
     vue:
       specifier: ^3.5.42
       version: 3.5.42
@@ -268,7 +271,7 @@ importers:
         specifier: catalog:frontend
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
       qrcode-generator:
-        specifier: ^2.0.4
+        specifier: catalog:frontend
         version: 2.0.4
       typescript:
         specifier: catalog:dev
