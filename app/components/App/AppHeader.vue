@@ -1,9 +1,7 @@
 <template>
   <header class="app-header">
     <div class="app-logo">
-      <span class="app-logo-icon">
-        <span i-carbon-flash />
-      </span>
+      <img class="app-logo-image" src="/logo.png" alt="Interactive Studio" width="44" height="44">
       <span class="app-logo-text">FUTURE WALL</span>
     </div>
     <span class="neo-pill">Startup Season 6</span>
@@ -31,14 +29,13 @@
   gap: 0.625rem;
 }
 
-.app-logo-icon {
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  background: #000;
-  color: var(--fw-yellow);
-  font-size: 1.25rem;
+.app-logo-image {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: var(--fw-border);
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .app-logo-text {
