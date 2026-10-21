@@ -9,7 +9,6 @@ const centerX = cardWidth / 2
 const fontFamily = '"Cabinet Grotesk", "Satoshi", "Noto Sans Thai", system-ui, sans-serif'
 const yellow = '#ffe17c'
 const charcoal = '#171e19'
-const sage = '#b7c6c2'
 const borderWidth = 6
 const shadowOffset = 24
 
@@ -153,39 +152,6 @@ function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, width: num
   ctx.stroke()
 }
 
-function drawBolt(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const points: Array<[number, number]> = [[58, 12], [24, 56], [46, 56], [40, 88], [76, 42], [54, 42]]
-  ctx.beginPath()
-  for (const [index, [px, py]] of points.entries()) {
-    const targetX = x + (px / 100) * size
-    const targetY = y + (py / 100) * size
-    if (index === 0)
-      ctx.moveTo(targetX, targetY)
-    else
-      ctx.lineTo(targetX, targetY)
-  }
-  ctx.closePath()
-  ctx.fillStyle = yellow
-  ctx.fill()
-}
-
-function drawHeader(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = '#000'
-  ctx.fillRect(60, 70, 100, 100)
-  drawBolt(ctx, 60, 70, 100)
-
-  ctx.textAlign = 'left'
-  ctx.fillStyle = '#000'
-  setFont(ctx, 800, 72)
-  ctx.fillText('FUTURE WALL', 190, 146)
-
-  drawBox(ctx, 770, 85, 250, 70, 35, '#fff')
-  ctx.textAlign = 'center'
-  ctx.fillStyle = '#000'
-  setFont(ctx, 700, 32)
-  ctx.fillText('Season 6', 895, 131)
-}
-
 async function drawAvatar(ctx: CanvasRenderingContext2D, avatar: AvatarDef) {
   const src = avatarImageUrl(avatar, 'stand')
   const source = videoPattern.test(src) ? withoutBlackBackground(await loadVideoFrame(src)) : await loadImage(src)
@@ -228,19 +194,6 @@ function drawNamePlate(ctx: CanvasRenderingContext2D, nickname: string, avatar: 
     ctx.fillText(line, centerX, 1400 + index * 58)
 }
 
-function drawFooter(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = charcoal
-  ctx.fillRect(0, 1740, cardWidth, 180)
-
-  ctx.fillStyle = yellow
-  setFont(ctx, 700, 40)
-  ctx.fillText('วัยรุ่นมีของ Startup Season 6', centerX, 1818)
-
-  ctx.fillStyle = sage
-  setFont(ctx, 500, 30)
-  ctx.fillText('Increstive Company Limited | SIAMSCAPE | 30-31 ต.ค. 2569', centerX, 1868)
-}
-
 async function waitForFonts() {
   const sample = 'สวัสดี Hello'
   await Promise.allSettled([
@@ -261,11 +214,9 @@ export async function renderCard(nickname: string, avatar: AvatarDef): Promise<B
   ctx.textBaseline = 'alphabetic'
 
   drawBackground(ctx)
-  drawHeader(ctx)
   drawPanel(ctx)
   await drawAvatar(ctx, avatar)
   drawNamePlate(ctx, nickname, avatar)
-  drawFooter(ctx)
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Card export failed')), 'image/png')

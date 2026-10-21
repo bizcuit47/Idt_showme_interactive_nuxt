@@ -122,15 +122,17 @@ onBeforeUnmount(() => {
       </div>
 
       <div flex="~ col" gap-4>
-        <ButtonPrimary :is-disabled="!cardUrl" @click="download">
-          ดาวน์โหลดรูป
-        </ButtonPrimary>
-        <ButtonSecondary :is-disabled="!cardUrl" @click="share">
-          แชร์ไปแอปอื่น
-        </ButtonSecondary>
-        <ButtonSecondary v-if="isCopySupported" :is-disabled="!cardUrl" @click="copyImage">
-          คัดลอกรูป
-        </ButtonSecondary>
+        <div class="action-row">
+          <ButtonPrimary :is-disabled="!cardUrl" @click="download">
+            ดาวน์โหลดรูป
+          </ButtonPrimary>
+          <ButtonSecondary :is-disabled="!cardUrl" @click="share">
+            แชร์ไปแอปอื่น
+          </ButtonSecondary>
+          <ButtonSecondary v-if="isCopySupported" :is-disabled="!cardUrl" @click="copyImage">
+            คัดลอกรูป
+          </ButtonSecondary>
+        </div>
         <ButtonSecondary v-if="isFailed" @click="generate">
           ลองสร้างการ์ดอีกครั้ง
         </ButtonSecondary>
@@ -177,18 +179,30 @@ onBeforeUnmount(() => {
 .card-frame {
   align-self: center;
   width: min(100%, 280px);
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 1080 / 1520;
   overflow: hidden;
-  border: var(--fw-border);
-  border-radius: 1rem;
-  background: var(--fw-sage);
-  box-shadow: var(--fw-shadow-lg);
 }
 
 .card-image {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.action-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-row > button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.75rem 0.5rem;
+  box-shadow: var(--fw-shadow-sm);
+  font-size: 0.9rem;
+  line-height: 1.3;
 }
 
 .card-placeholder {
