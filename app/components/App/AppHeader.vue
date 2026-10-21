@@ -1,10 +1,13 @@
+<script setup lang="ts">
+const logoUrl = '/logo.png'
+</script>
+
 <template>
   <header class="app-header">
     <div class="app-logo">
-      <img class="app-logo-image" src="/logo.png" alt="Interactive Studio" width="44" height="44">
+      <img class="app-logo-image" :src="logoUrl" alt="Interactive Studio" width="44" height="44">
       <span class="app-logo-text">FUTURE WALL</span>
     </div>
-    <span class="neo-pill">Startup Season 6</span>
   </header>
 </template>
 
@@ -16,7 +19,6 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 4rem;
   padding: 0 1.25rem;
   border-bottom: var(--fw-border);

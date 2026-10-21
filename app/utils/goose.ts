@@ -1,4 +1,4 @@
-import type { AvatarDef, AvatarId } from '~/types'
+import type { AvatarDef, AvatarFraming, AvatarId } from '~/types'
 
 export type GoosePose = 'walk' | 'walk2' | 'stand'
 
@@ -73,11 +73,49 @@ export function svgToDataUri(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
+export interface DrawRect {
+  sx: number
+  sy: number
+  sw: number
+  sh: number
+  dx: number
+  dy: number
+  dw: number
+  dh: number
+}
+
+export const characterHeightRatio = 0.92
+export const characterBottomRatio = 0.04
+
+export function characterDrawRect(
+  framing: AvatarFraming,
+  source: { width: number, height: number },
+  box: { width: number, height: number },
+  heightRatio = characterHeightRatio,
+): DrawRect {
+  const sw = framing.width * source.width
+  const sh = framing.height * source.height
+  const scale = Math.min((box.height * heightRatio) / sh, (box.width * 0.96) / sw)
+  const dw = sw * scale
+  const dh = sh * scale
+  return {
+    sx: framing.x * source.width,
+    sy: framing.y * source.height,
+    sw,
+    sh,
+    dx: (box.width - dw) / 2,
+    dy: box.height - dh - box.height * characterBottomRatio,
+    dw,
+    dh,
+  }
+}
+
 const characterVertexShader = `
 attribute vec2 position;
+attribute vec2 textureCoordinate;
 varying vec2 uv;
 void main() {
-  uv = vec2(position.x * 0.5 + 0.5, position.y * 0.5 + 0.5);
+  uv = textureCoordinate;
   gl_Position = vec4(position, 0.0, 1.0);
 }
 `
@@ -97,7 +135,11 @@ export interface CharacterPainter {
   draw: (video: HTMLVideoElement) => void
 }
 
-export function createCharacterPainter(canvas: HTMLCanvasElement): CharacterPainter | null {
+export function createCharacterPainter(
+  canvas: HTMLCanvasElement,
+  framing?: AvatarFraming,
+  heightRatio = characterHeightRatio,
+): CharacterPainter | null {
   const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false })
   if (!gl)
     return null
@@ -125,10 +167,31 @@ export function createCharacterPainter(canvas: HTMLCanvasElement): CharacterPain
 
   const buffer = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
   const position = gl.getAttribLocation(program, 'position')
+  const textureCoordinate = gl.getAttribLocation(program, 'textureCoordinate')
   gl.enableVertexAttribArray(position)
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
+  gl.enableVertexAttribArray(textureCoordinate)
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 16, 0)
+  gl.vertexAttribPointer(textureCoordinate, 2, gl.FLOAT, false, 16, 8)
+
+  function uploadQuad(video: HTMLVideoElement) {
+    const rect = framing
+      ? characterDrawRect(framing, { width: video.videoWidth, height: video.videoHeight }, { width: canvas.width, height: canvas.height }, heightRatio)
+      : { sx: 0, sy: 0, sw: video.videoWidth, sh: video.videoHeight, dx: 0, dy: 0, dw: canvas.width, dh: canvas.height }
+    const left = (rect.dx / canvas.width) * 2 - 1
+    const right = ((rect.dx + rect.dw) / canvas.width) * 2 - 1
+    const top = 1 - (rect.dy / canvas.height) * 2
+    const bottom = 1 - ((rect.dy + rect.dh) / canvas.height) * 2
+    const u0 = rect.sx / video.videoWidth
+    const u1 = (rect.sx + rect.sw) / video.videoWidth
+    const vTop = 1 - rect.sy / video.videoHeight
+    const vBottom = 1 - (rect.sy + rect.sh) / video.videoHeight
+    gl!.bufferData(
+      gl!.ARRAY_BUFFER,
+      new Float32Array([left, bottom, u0, vBottom, right, bottom, u1, vBottom, left, top, u0, vTop, right, top, u1, vTop]),
+      gl!.STATIC_DRAW,
+    )
+  }
 
   const texture = gl.createTexture()
   gl.bindTexture(gl.TEXTURE_2D, texture)
@@ -141,10 +204,17 @@ export function createCharacterPainter(canvas: HTMLCanvasElement): CharacterPain
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
   gl.viewport(0, 0, canvas.width, canvas.height)
 
+  let isQuadReady = false
+
   return {
     draw(video: HTMLVideoElement) {
       if (video.readyState < 2 || !video.videoWidth)
         return
+      if (!isQuadReady) {
+        uploadQuad(video)
+        isQuadReady = true
+      }
+      gl.clear(gl.COLOR_BUFFER_BIT)
       gl.bindTexture(gl.TEXTURE_2D, texture)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
@@ -152,7 +222,7 @@ export function createCharacterPainter(canvas: HTMLCanvasElement): CharacterPain
   }
 }
 
-export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement) {
+export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement, framing?: AvatarFraming) {
   if (video.readyState < 2 || !video.videoWidth)
     return
   const size = 320
@@ -163,7 +233,14 @@ export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoE
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context)
     return
-  context.drawImage(video, 0, 0, size, size)
+  context.clearRect(0, 0, size, size)
+  if (framing) {
+    const rect = characterDrawRect(framing, { width: video.videoWidth, height: video.videoHeight }, { width: size, height: size })
+    context.drawImage(video, rect.sx, rect.sy, rect.sw, rect.sh, rect.dx, rect.dy, rect.dw, rect.dh)
+  }
+  else {
+    context.drawImage(video, 0, 0, size, size)
+  }
   const pixels = context.getImageData(0, 0, size, size)
   const data = pixels.data
   for (let index = 0; index < data.length; index += 4) {

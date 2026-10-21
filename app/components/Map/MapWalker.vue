@@ -3,7 +3,7 @@ import type { AvatarId, WalkBounds } from '~/types'
 import type { CharacterPainter, GoosePose } from '~/utils/goose'
 
 import { getAvatar } from '~/data/avatars'
-import { avatarImageUrl, createCharacterPainter } from '~/utils/goose'
+import { avatarImageUrl, characterBottomRatio, createCharacterPainter } from '~/utils/goose'
 
 type Phase = 'waiting' | 'dropping' | 'resting' | 'walking'
 
@@ -17,6 +17,10 @@ const { type, nickname, bounds, isDropping = false, isSelf = false, dropDelayMs 
 }>()
 
 const gooseSize = 200
+const characterHeightRatio = 0.8
+const depthScaleMin = 1
+const depthScaleMax = 1
+const nameGap = 46
 const gravity = 3200
 const bounceDamping = 0.42
 const minBounceSpeed = 260
@@ -32,6 +36,8 @@ const shadowElement = useTemplateRef<HTMLElement>('shadow')
 const flipElement = useTemplateRef<HTMLElement>('flip')
 const imageElement = useTemplateRef<HTMLVideoElement>('image')
 const canvasElement = useTemplateRef<HTMLCanvasElement>('canvas')
+
+const nameTop = gooseSize * (1 - characterBottomRatio - characterHeightRatio) - nameGap
 
 const poseUrls = computed(() => {
   const avatar = getAvatar(type)
@@ -63,7 +69,7 @@ function clamp(value: number, min: number, max: number): number {
 
 function depthScale(): number {
   const depth = (y - bounds.minY) / (bounds.maxY - bounds.minY)
-  return 0.65 + 0.55 * clamp(depth, 0, 1)
+  return depthScaleMin + (depthScaleMax - depthScaleMin) * clamp(depth, 0, 1)
 }
 
 function startResting(seconds: number) {
@@ -181,7 +187,7 @@ onMounted(() => {
   if (canvas) {
     canvas.width = gooseSize
     canvas.height = gooseSize
-    painter = createCharacterPainter(canvas)
+    painter = createCharacterPainter(canvas, getAvatar(type).framing, characterHeightRatio)
   }
   render()
 })
@@ -194,7 +200,7 @@ onMounted(() => {
     :style="{ width: `${gooseSize}px`, height: `${gooseSize}px` }"
   >
     <div ref="shadow" class="map-walker-shadow" />
-    <div class="map-walker-name" :class="{ 'map-walker-name-self': isSelf }">
+    <div class="map-walker-name" :class="{ 'map-walker-name-self': isSelf }" :style="{ top: `${nameTop}px` }">
       {{ nickname }}
     </div>
     <div ref="flip" class="map-walker-flip">

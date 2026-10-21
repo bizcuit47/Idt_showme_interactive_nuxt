@@ -17,6 +17,20 @@ describe('avatars', () => {
     }
   })
 
+  it('keeps every framing rectangle inside the source video', () => {
+    for (const avatar of avatars) {
+      const framing = avatar.framing
+      if (!framing)
+        continue
+      expect(framing.x, avatar.id).toBeGreaterThanOrEqual(0)
+      expect(framing.y, avatar.id).toBeGreaterThanOrEqual(0)
+      expect(framing.width, avatar.id).toBeGreaterThan(0)
+      expect(framing.height, avatar.id).toBeGreaterThan(0)
+      expect(framing.x + framing.width, avatar.id).toBeLessThanOrEqual(1)
+      expect(framing.y + framing.height, avatar.id).toBeLessThanOrEqual(1)
+    }
+  })
+
   it('looks avatars up by id and falls back to the first one', () => {
     expect(getAvatar('star').id).toBe('star')
     expect(getAvatar('unknown' as never).id).toBe(avatars[0]!.id)

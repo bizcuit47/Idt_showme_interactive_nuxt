@@ -19,7 +19,7 @@ useRafFn(() => {
   const video = videoElement.value
   const canvas = canvasElement.value
   if (video && canvas)
-    paintCharacterFrame(canvas, video)
+    paintCharacterFrame(canvas, video, avatar.value.framing)
 })
 </script>
 
