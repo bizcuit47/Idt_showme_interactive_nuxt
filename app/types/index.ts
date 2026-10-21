@@ -42,6 +42,13 @@ export interface Player {
   createdAt: string
 }
 
+export interface ApiDuck {
+  id: string
+  nickname: string
+  type: AvatarId
+  createdAt: number
+}
+
 export interface WalkBounds {
   minX: number
   maxX: number

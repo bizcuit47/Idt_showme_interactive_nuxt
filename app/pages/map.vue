@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import type { WalkBounds } from '~/types'
 
-import { avatars } from '~/data/avatars'
-
 const stageWidth = 1080
 const stageHeight = 1920
-const demoNpcCount = 4
-const demoNames = ['น้องส้ม', 'ไอติม', 'บีม', 'ใบเตย', 'เจ', 'มายด์']
 const walkMarginX = 140
 const walkMaxY = 1740
 const walkMinY = 1250
@@ -43,29 +39,16 @@ const backStyle = computed(() => ({
 
 const { ducks, addDuck, removeDuck } = useDuckField()
 
-for (let index = 0; index < demoNpcCount; index++) {
+useDuckFeed((duck) => {
   addDuck({
-    id: `npc-${index}`,
-    nickname: demoNames[index]!,
-    type: avatars[(index * 2 + 1) % avatars.length]!.id,
-    isSelf: false,
-    isEntering: false,
+    id: duck.id,
+    nickname: duck.nickname,
+    type: duck.type,
+    isSelf: duck.id === me.value?.id,
+    isEntering: true,
     enterDelayMs: 0,
   })
-}
-
-watch(me, (player) => {
-  if (!player)
-    return
-  addDuck({
-    id: player.id,
-    nickname: player.nickname,
-    type: player.avatarType,
-    isSelf: true,
-    isEntering: true,
-    enterDelayMs: 700,
-  })
-}, { immediate: true })
+})
 
 function playAgain() {
   navigateTo('/')
@@ -75,7 +58,7 @@ function playAgain() {
 <template>
   <main class="map-page">
     <ClientOnly>
-      <div v-if="me" class="map-stage" :style="stageStyle">
+      <div class="map-stage" :style="stageStyle">
         <img class="map-scene" src="/map-background.png" alt="">
 
         <MapWalker
@@ -94,13 +77,6 @@ function playAgain() {
         <button class="map-back" :style="backStyle" aria-label="เล่นอีกครั้ง" @click="playAgain">
           <img src="/home-icon.png" alt="">
         </button>
-      </div>
-
-      <div v-else class="dot-pattern" flex="~ col items-center justify-center" px-6 text-center gap-4 min-h-screen>
-        <p>ยังไม่มีข้อมูลผู้เล่น</p>
-        <NuxtLink to="/" class="neo-pill">
-          ไปตอบคำถามก่อน
-        </NuxtLink>
       </div>
     </ClientOnly>
   </main>

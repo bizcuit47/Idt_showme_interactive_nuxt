@@ -1,10 +1,28 @@
-import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
+import { createError, readBody } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { questions } from '~/data/questions'
 import IndexPage from '~/pages/index.vue'
 
+const { navigateToMock, sentDucks, sendResponse } = vi.hoisted(() => ({
+  navigateToMock: vi.fn(),
+  sentDucks: [] as unknown[],
+  sendResponse: { status: 200 },
+}))
+
+mockNuxtImport('navigateTo', () => navigateToMock)
+
 registerEndpoint('/', () => '')
+registerEndpoint('/api/ducks', {
+  method: 'POST',
+  handler: async (event) => {
+    sentDucks.push(await readBody(event))
+    if (sendResponse.status !== 200)
+      throw createError({ statusCode: sendResponse.status, statusMessage: 'rejected' })
+    return { ok: true, isDuplicate: false }
+  },
+})
 
 async function mountPage() {
   return mountSuspended(IndexPage)
@@ -27,6 +45,9 @@ describe('quiz page', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.useFakeTimers()
+    navigateToMock.mockReset()
+    sentDucks.length = 0
+    sendResponse.status = 200
   })
 
   afterEach(() => {
@@ -168,5 +189,73 @@ describe('quiz page', () => {
 
     expect(wrapper.find('input.nickname-input').exists()).toBe(true)
     expect(localStorage.getItem('fw:me')).toBeNull()
+  })
+
+  describe('sending the duck to the map', () => {
+    async function reachResult() {
+      const wrapper = await mountPage()
+      await typeNickname(wrapper, 'มะลิ')
+      await answerAll(wrapper)
+      await vi.advanceTimersByTimeAsync(2000)
+      await flushPromises()
+      return wrapper
+    }
+
+    function sendButton(wrapper: Awaited<ReturnType<typeof mountPage>>) {
+      return wrapper.findAll('button').find(button => button.text().includes('ส่งเป็ดของฉันไปที่เมือง'))!
+    }
+
+    it('posts the player id, nickname and character, then opens the card', async () => {
+      const wrapper = await reachResult()
+      const saved = JSON.parse(localStorage.getItem('fw:me')!)
+
+      await sendButton(wrapper).trigger('click')
+      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share'))
+
+      expect(sentDucks).toEqual([{ id: saved.id, nickname: 'มะลิ', type: saved.avatarType }])
+    })
+
+    it('stays on the result and explains when the server blocks the name', async () => {
+      sendResponse.status = 422
+      const wrapper = await reachResult()
+
+      await sendButton(wrapper).trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('ชื่อนี้ใช้ไม่ได้'))
+
+      expect(navigateToMock).not.toHaveBeenCalled()
+    })
+
+    it('asks the player to wait when they send too often', async () => {
+      sendResponse.status = 429
+      const wrapper = await reachResult()
+
+      await sendButton(wrapper).trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('ส่งถี่เกินไป'))
+
+      expect(navigateToMock).not.toHaveBeenCalled()
+    })
+
+    it('lets the player skip to the card when sending keeps failing', async () => {
+      sendResponse.status = 500
+      const wrapper = await reachResult()
+
+      await sendButton(wrapper).trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('ส่งเป็ดไม่สำเร็จ'))
+      const skip = wrapper.findAll('button').find(button => button.text().includes('ข้ามไปดูการ์ดก่อน'))!
+      await skip.trigger('click')
+
+      expect(navigateToMock).toHaveBeenCalledWith('/share')
+    })
+
+    it('sends the duck only once when the button is pressed twice', async () => {
+      const wrapper = await reachResult()
+      const button = sendButton(wrapper)
+
+      await button.trigger('click')
+      await button.trigger('click')
+      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share'))
+
+      expect(sentDucks).toHaveLength(1)
+    })
   })
 })

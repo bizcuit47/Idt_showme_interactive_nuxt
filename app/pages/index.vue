@@ -4,6 +4,7 @@ import { getAvatar } from '~/data/avatars'
 import { questions } from '~/data/questions'
 import { nicknameErrorText, validateNickname } from '~/utils/nickname'
 import { computeAvatar } from '~/utils/scoring'
+import { classifySendError, sendDuck, sendDuckErrorText } from '~/utils/sendDuck'
 
 type Step = 'intro' | 'quiz' | 'calculating' | 'result'
 
@@ -18,6 +19,8 @@ const nameError = ref('')
 const currentIndex = ref(0)
 const answers = ref<number[]>([])
 const pickedIndex = ref<number>()
+const isSending = ref(false)
+const sendError = ref('')
 
 const question = computed(() => questions[currentIndex.value]!)
 const progressPercent = computed(() => Math.round((currentIndex.value / questions.length) * 100))
@@ -88,7 +91,22 @@ function showResult() {
   step.value = 'result'
 }
 
-function send() {
+async function send() {
+  if (!me.value || isSending.value)
+    return
+  isSending.value = true
+  sendError.value = ''
+  try {
+    await sendDuck(me.value)
+    navigateTo('/share')
+  }
+  catch (error) {
+    sendError.value = sendDuckErrorText[classifySendError(error)]
+  }
+  isSending.value = false
+}
+
+function skipSending() {
   navigateTo('/share')
 }
 
@@ -196,9 +214,15 @@ function playAgain() {
           </div>
         </div>
         <div flex="~ col" gap-4>
-          <ButtonPrimary @click="send">
-            ส่งเป็ดของฉันไปที่เมือง 🏙️
+          <ButtonPrimary :is-disabled="isSending" @click="send">
+            {{ isSending ? 'กำลังส่งเป็ด…' : 'ส่งเป็ดของฉันไปที่เมือง 🏙️' }}
           </ButtonPrimary>
+          <p v-if="sendError" class="neo-pill" self-start>
+            {{ sendError }}
+          </p>
+          <button v-if="sendError" class="text-link" @click="skipSending">
+            ข้ามไปดูการ์ดก่อน
+          </button>
           <button class="text-link" @click="playAgain">
             เล่นใหม่
           </button>

@@ -1,5 +1,7 @@
 import type { AvatarId } from '~/types'
 
+import { MAX_MAP_DUCKS } from '~/constants'
+
 export interface FieldDuck {
   id: string
   nickname: string
@@ -10,7 +12,7 @@ export interface FieldDuck {
   isLeaving: boolean
 }
 
-export const maxDucks = 20
+export const maxDucks = MAX_MAP_DUCKS
 
 export function useDuckField() {
   const ducks = ref<FieldDuck[]>([])
