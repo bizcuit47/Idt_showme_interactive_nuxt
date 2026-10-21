@@ -34,7 +34,7 @@ function playAgain() {
   <main class="map-page">
     <ClientOnly>
       <div v-if="me" class="map-stage" :style="stageStyle">
-        <MapScene />
+        <img class="map-scene" src="/map-background.png" alt="">
 
         <header class="map-header">
           <div class="map-logo">
@@ -95,6 +95,14 @@ function playAgain() {
   top: 50%;
   overflow: hidden;
   transform-origin: center;
+}
+
+.map-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .map-header {
