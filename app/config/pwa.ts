@@ -37,8 +37,7 @@ export const pwa: ModuleOptions = {
   workbox: {
     globPatterns: ['**/*.{js,css,html,txt,png,ico,svg}'],
     globIgnores: ['map-background.png'],
-    navigateFallbackDenylist: [/^\/api\//],
-    navigateFallback: '/',
+    navigateFallback: null,
     cleanupOutdatedCaches: true,
     runtimeCaching: [
       {
