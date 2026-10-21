@@ -1,6 +1,6 @@
 import type { AvatarDef } from '~/types'
 
-import { avatarImageUrl, characterDrawRect } from '~/utils/goose'
+import { avatarImageUrl, characterDrawRect, clearConnectedBackdrop } from '~/utils/goose'
 
 export const cardWidth = 1080
 export const cardHeight = 1920
@@ -71,16 +71,7 @@ function withoutBlackBackground(video: HTMLVideoElement): HTMLCanvasElement {
   frame.height = video.videoHeight
   const context = frame.getContext('2d')!
   context.drawImage(video, 0, 0)
-  const pixels = context.getImageData(0, 0, frame.width, frame.height)
-  const data = pixels.data
-  for (let index = 0; index < data.length; index += 4) {
-    const brightness = Math.max(data[index]!, data[index + 1]!, data[index + 2]!)
-    if (brightness < 24)
-      data[index + 3] = 0
-    else if (brightness < 64)
-      data[index + 3] = Math.round(((brightness - 24) / 40) * data[index + 3]!)
-  }
-  context.putImageData(pixels, 0, 0)
+  clearConnectedBackdrop(context)
   return frame
 }
 

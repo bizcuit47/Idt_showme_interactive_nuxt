@@ -124,10 +124,28 @@ const characterFragmentShader = `
 precision mediump float;
 varying vec2 uv;
 uniform sampler2D image;
+uniform vec2 texel;
+
+float brightness(vec2 offset) {
+  vec4 sampleColor = texture2D(image, uv + offset);
+  return max(sampleColor.r, max(sampleColor.g, sampleColor.b));
+}
+
 void main() {
   vec4 color = texture2D(image, uv);
-  float brightness = max(color.r, max(color.g, color.b));
-  gl_FragColor = vec4(color.rgb, color.a * smoothstep(0.09, 0.25, brightness));
+  float level = max(color.r, max(color.g, color.b));
+  float dark = 1.0 - smoothstep(0.05, 0.16, level);
+  float near = 0.0;
+  near = max(near, brightness(vec2(texel.x, 0.0)));
+  near = max(near, brightness(vec2(-texel.x, 0.0)));
+  near = max(near, brightness(vec2(0.0, texel.y)));
+  near = max(near, brightness(vec2(0.0, -texel.y)));
+  near = max(near, brightness(vec2(texel.x * 2.0, 0.0)));
+  near = max(near, brightness(vec2(-texel.x * 2.0, 0.0)));
+  near = max(near, brightness(vec2(0.0, texel.y * 2.0)));
+  near = max(near, brightness(vec2(0.0, -texel.y * 2.0)));
+  float alpha = mix(1.0, smoothstep(0.2, 0.45, near), dark);
+  gl_FragColor = vec4(color.rgb, color.a * alpha);
 }
 `
 
@@ -202,7 +220,9 @@ export function createCharacterPainter(
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
   gl.enable(gl.BLEND)
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+  gl.clearColor(0, 0, 0, 0)
   gl.viewport(0, 0, canvas.width, canvas.height)
+  const texel = gl.getUniformLocation(program, 'texel')
 
   let isQuadReady = false
 
@@ -212,6 +232,7 @@ export function createCharacterPainter(
         return
       if (!isQuadReady) {
         uploadQuad(video)
+        gl.uniform2f(texel, 4 / video.videoWidth, 4 / video.videoHeight)
         isQuadReady = true
       }
       gl.clear(gl.COLOR_BUFFER_BIT)
@@ -222,6 +243,132 @@ export function createCharacterPainter(
   }
 }
 
+const backdropTolerance = 42
+
+function dilateCharacter(outside: Uint8Array, width: number, height: number, radius: number) {
+  const count = width * height
+  const horizontal = new Uint8Array(count)
+  for (let y = 0; y < height; y++) {
+    const row = y * width
+    let run = 0
+    for (let x = 0; x < width; x++) {
+      if (!outside[row + x])
+        run = radius + 1
+      if (run > 0) {
+        horizontal[row + x] = 1
+        run--
+      }
+    }
+    run = 0
+    for (let x = width - 1; x >= 0; x--) {
+      if (!outside[row + x])
+        run = radius + 1
+      if (run > 0) {
+        horizontal[row + x] = 1
+        run--
+      }
+    }
+  }
+
+  const keep = new Uint8Array(count)
+  for (let x = 0; x < width; x++) {
+    let run = 0
+    for (let y = 0; y < height; y++) {
+      const index = y * width + x
+      if (horizontal[index])
+        run = radius + 1
+      if (run > 0) {
+        keep[index] = 1
+        run--
+      }
+    }
+    run = 0
+    for (let y = height - 1; y >= 0; y--) {
+      const index = y * width + x
+      if (horizontal[index])
+        run = radius + 1
+      if (run > 0) {
+        keep[index] = 1
+        run--
+      }
+    }
+  }
+  return keep
+}
+
+export function clearConnectedBackdrop(context: CanvasRenderingContext2D) {
+  const { width, height } = context.canvas
+  const pixels = context.getImageData(0, 0, width, height)
+  const data = pixels.data
+  const count = width * height
+  let sample = -1
+  for (let index = 0; index < count; index++) {
+    if (data[index * 4 + 3]! > 200) {
+      sample = index
+      break
+    }
+  }
+  if (sample < 0)
+    return
+
+  const base = sample * 4
+  const red = data[base]!
+  const green = data[base + 1]!
+  const blue = data[base + 2]!
+  const outside = new Uint8Array(count)
+  const stack = new Int32Array(count)
+  let top = 0
+
+  function isBackdrop(index: number) {
+    const offset = index * 4
+    if (data[offset + 3]! < 16)
+      return true
+    return Math.abs(data[offset]! - red) + Math.abs(data[offset + 1]! - green) + Math.abs(data[offset + 2]! - blue) <= backdropTolerance
+  }
+
+  function push(index: number) {
+    if (outside[index] || !isBackdrop(index))
+      return
+    outside[index] = 1
+    stack[top++] = index
+  }
+
+  for (let x = 0; x < width; x++) {
+    push(x)
+    push((height - 1) * width + x)
+  }
+  for (let y = 0; y < height; y++) {
+    push(y * width)
+    push(y * width + width - 1)
+  }
+  for (let index = 0; index < count; index++) {
+    if (data[index * 4 + 3]! < 16)
+      push(index)
+  }
+
+  while (top > 0) {
+    const index = stack[--top]!
+    const x = index % width
+    if (x > 0)
+      push(index - 1)
+    if (x < width - 1)
+      push(index + 1)
+    if (index >= width)
+      push(index - width)
+    if (index < count - width)
+      push(index + width)
+  }
+
+  const keep = dilateCharacter(outside, width, height, Math.max(3, Math.round(width / 220)))
+  for (let index = 0; index < count; index++) {
+    if (!keep[index])
+      data[index * 4 + 3] = 0
+  }
+  context.putImageData(pixels, 0, 0)
+}
+
+const paintedTime = new WeakMap<HTMLVideoElement, number>()
+
 export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement, framing?: AvatarFraming) {
   if (video.readyState < 2 || !video.videoWidth)
     return
@@ -230,6 +377,9 @@ export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoE
     canvas.width = size
     canvas.height = size
   }
+  if (paintedTime.get(video) === video.currentTime)
+    return
+  paintedTime.set(video, video.currentTime)
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context)
     return
@@ -241,16 +391,7 @@ export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoE
   else {
     context.drawImage(video, 0, 0, size, size)
   }
-  const pixels = context.getImageData(0, 0, size, size)
-  const data = pixels.data
-  for (let index = 0; index < data.length; index += 4) {
-    const brightness = Math.max(data[index]!, data[index + 1]!, data[index + 2]!)
-    if (brightness < 24)
-      data[index + 3] = 0
-    else if (brightness < 64)
-      data[index + 3] = Math.round(((brightness - 24) / 40) * data[index + 3]!)
-  }
-  context.putImageData(pixels, 0, 0)
+  clearConnectedBackdrop(context)
 }
 
 export function avatarImageUrl(avatar: AvatarDef, pose: GoosePose = 'walk'): string {
