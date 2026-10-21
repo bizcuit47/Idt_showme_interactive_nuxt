@@ -73,6 +73,109 @@ export function svgToDataUri(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
+const characterVertexShader = `
+attribute vec2 position;
+varying vec2 uv;
+void main() {
+  uv = vec2(position.x * 0.5 + 0.5, position.y * 0.5 + 0.5);
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`
+
+const characterFragmentShader = `
+precision mediump float;
+varying vec2 uv;
+uniform sampler2D image;
+void main() {
+  vec4 color = texture2D(image, uv);
+  float brightness = max(color.r, max(color.g, color.b));
+  gl_FragColor = vec4(color.rgb, color.a * smoothstep(0.09, 0.25, brightness));
+}
+`
+
+export interface CharacterPainter {
+  draw: (video: HTMLVideoElement) => void
+}
+
+export function createCharacterPainter(canvas: HTMLCanvasElement): CharacterPainter | null {
+  const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false })
+  if (!gl)
+    return null
+
+  function shader(type: number, source: string) {
+    const result = gl!.createShader(type)
+    if (!result)
+      return null
+    gl!.shaderSource(result, source)
+    gl!.compileShader(result)
+    return result
+  }
+
+  const program = gl.createProgram()
+  const vertex = shader(gl.VERTEX_SHADER, characterVertexShader)
+  const fragment = shader(gl.FRAGMENT_SHADER, characterFragmentShader)
+  if (!program || !vertex || !fragment)
+    return null
+  gl.attachShader(program, vertex)
+  gl.attachShader(program, fragment)
+  gl.linkProgram(program)
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+    return null
+  gl.useProgram(program)
+
+  const buffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+  const position = gl.getAttribLocation(program, 'position')
+  gl.enableVertexAttribArray(position)
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
+
+  const texture = gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D, texture)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+  gl.enable(gl.BLEND)
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+  gl.viewport(0, 0, canvas.width, canvas.height)
+
+  return {
+    draw(video: HTMLVideoElement) {
+      if (video.readyState < 2 || !video.videoWidth)
+        return
+      gl.bindTexture(gl.TEXTURE_2D, texture)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video)
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    },
+  }
+}
+
+export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement) {
+  if (video.readyState < 2 || !video.videoWidth)
+    return
+  const size = 320
+  if (canvas.width !== size || canvas.height !== size) {
+    canvas.width = size
+    canvas.height = size
+  }
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context)
+    return
+  context.drawImage(video, 0, 0, size, size)
+  const pixels = context.getImageData(0, 0, size, size)
+  const data = pixels.data
+  for (let index = 0; index < data.length; index += 4) {
+    const brightness = Math.max(data[index]!, data[index + 1]!, data[index + 2]!)
+    if (brightness < 24)
+      data[index + 3] = 0
+    else if (brightness < 64)
+      data[index + 3] = Math.round(((brightness - 24) / 40) * data[index + 3]!)
+  }
+  context.putImageData(pixels, 0, 0)
+}
+
 export function avatarImageUrl(avatar: AvatarDef, pose: GoosePose = 'walk'): string {
   const images = avatar.images
   if (!images)

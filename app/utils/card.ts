@@ -8,6 +8,8 @@ export const cardHeight = 1920
 const centerX = cardWidth / 2
 const fontFamily = '"Noto Sans Thai", "Noto Sans", system-ui, sans-serif'
 
+const videoPattern = /\.(mp4|webm|mov)(?:$|\?)/i
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image()
@@ -16,6 +18,65 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     image.onerror = () => reject(new Error('Avatar image failed to load'))
     image.src = src
   })
+}
+
+function loadVideoFrame(src: string): Promise<HTMLVideoElement> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.muted = true
+    video.playsInline = true
+    video.preload = 'auto'
+    video.crossOrigin = 'anonymous'
+    const timer = window.setTimeout(() => fail(), 8000)
+
+    function fail() {
+      window.clearTimeout(timer)
+      reject(new Error('Avatar video failed to load'))
+    }
+
+    function finish() {
+      window.clearTimeout(timer)
+      if (!video.videoWidth)
+        fail()
+      else
+        resolve(video)
+    }
+
+    video.onerror = fail
+    video.onloadeddata = () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0.05) {
+        finish()
+        return
+      }
+      video.addEventListener('seeked', finish, { once: true })
+      try {
+        video.currentTime = Math.min(0.12, video.duration / 2)
+      }
+      catch {
+        finish()
+      }
+    }
+    video.src = src
+  })
+}
+
+function withoutBlackBackground(video: HTMLVideoElement): HTMLCanvasElement {
+  const frame = document.createElement('canvas')
+  frame.width = video.videoWidth
+  frame.height = video.videoHeight
+  const context = frame.getContext('2d')!
+  context.drawImage(video, 0, 0)
+  const pixels = context.getImageData(0, 0, frame.width, frame.height)
+  const data = pixels.data
+  for (let index = 0; index < data.length; index += 4) {
+    const brightness = Math.max(data[index]!, data[index + 1]!, data[index + 2]!)
+    if (brightness < 24)
+      data[index + 3] = 0
+    else if (brightness < 64)
+      data[index + 3] = Math.round(((brightness - 24) / 40) * data[index + 3]!)
+  }
+  context.putImageData(pixels, 0, 0)
+  return frame
 }
 
 function setFont(ctx: CanvasRenderingContext2D, weight: number, size: number) {
@@ -93,12 +154,15 @@ function drawHeader(ctx: CanvasRenderingContext2D) {
 }
 
 async function drawAvatar(ctx: CanvasRenderingContext2D, avatar: AvatarDef) {
-  const image = await loadImage(avatarImageUrl(avatar, 'stand'))
+  const src = avatarImageUrl(avatar, 'stand')
+  const source = videoPattern.test(src) ? withoutBlackBackground(await loadVideoFrame(src)) : await loadImage(src)
+  const naturalWidth = source.width
+  const naturalHeight = source.height
   const boxSize = 760
-  const ratio = (image.naturalWidth || 1) / (image.naturalHeight || 1)
+  const ratio = (naturalWidth || 1) / (naturalHeight || 1)
   const width = ratio >= 1 ? boxSize : boxSize * ratio
   const height = ratio >= 1 ? boxSize / ratio : boxSize
-  ctx.drawImage(image, centerX - width / 2, 330 + (boxSize - height) / 2, width, height)
+  ctx.drawImage(source, centerX - width / 2, 330 + (boxSize - height) / 2, width, height)
 }
 
 function drawNamePlate(ctx: CanvasRenderingContext2D, nickname: string, avatar: AvatarDef) {

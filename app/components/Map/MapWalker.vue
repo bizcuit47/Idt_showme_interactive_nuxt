@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { AvatarId, WalkBounds } from '~/types'
-import type { GoosePose } from '~/utils/goose'
+import type { CharacterPainter, GoosePose } from '~/utils/goose'
 
 import { getAvatar } from '~/data/avatars'
-import { avatarImageUrl } from '~/utils/goose'
+import { avatarImageUrl, createCharacterPainter } from '~/utils/goose'
 
 type Phase = 'waiting' | 'dropping' | 'resting' | 'walking'
 
@@ -31,6 +31,7 @@ const rootElement = useTemplateRef<HTMLElement>('root')
 const shadowElement = useTemplateRef<HTMLElement>('shadow')
 const flipElement = useTemplateRef<HTMLElement>('flip')
 const imageElement = useTemplateRef<HTMLVideoElement>('image')
+const canvasElement = useTemplateRef<HTMLCanvasElement>('canvas')
 
 const poseUrls = computed(() => {
   const avatar = getAvatar(type)
@@ -160,12 +161,30 @@ function render() {
   shadow.style.opacity = String(0.35 * (1 - airborne))
   shadow.style.transform = `translateX(-50%) scale(${1 - airborne * 0.5})`
   flip.style.transform = `translateY(${dropOffset - bounce}px) rotate(${sway}deg) scaleX(${facing})`
+  drawFrame(image)
+}
 
+let drawnTime = -1
+let painter: CharacterPainter | null = null
+
+function drawFrame(video: HTMLVideoElement) {
+  if (!painter || video.readyState < 2 || video.currentTime === drawnTime)
+    return
+  drawnTime = video.currentTime
+  painter.draw(video)
 }
 
 useRafFn(({ delta }) => update(Math.min(delta / 1000, 0.05)))
 
-onMounted(render)
+onMounted(() => {
+  const canvas = canvasElement.value
+  if (canvas) {
+    canvas.width = gooseSize
+    canvas.height = gooseSize
+    painter = createCharacterPainter(canvas)
+  }
+  render()
+})
 </script>
 
 <template>
@@ -181,13 +200,14 @@ onMounted(render)
     <div ref="flip" class="map-walker-flip">
       <video
         ref="image"
-        class="map-walker-image"
+        class="map-walker-source"
         :src="poseUrls.walk"
         autoplay
         loop
         muted
         playsinline
       />
+      <canvas ref="canvas" class="map-walker-image" />
     </div>
   </div>
 </template>
@@ -207,6 +227,15 @@ onMounted(render)
   width: 100%;
   height: 100%;
   transform-origin: 50% 100%;
+}
+
+.map-walker-source {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .map-walker-image {
