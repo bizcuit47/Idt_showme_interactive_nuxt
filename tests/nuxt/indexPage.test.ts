@@ -105,6 +105,25 @@ describe('quiz page', () => {
     expect(wrapper.text()).toContain(`ข้อ 2 / ${questions.length}`)
   })
 
+  it('shows the result when the phone cannot create a randomUUID', async () => {
+    vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
+      throw new Error('insecure context')
+    })
+    try {
+      const wrapper = await mountPage()
+      await typeNickname(wrapper, 'มะลิ')
+      await answerAll(wrapper)
+      await vi.advanceTimersByTimeAsync(2000)
+      await flushPromises()
+
+      expect(JSON.parse(localStorage.getItem('fw:me')!).id).toBeTruthy()
+      expect(wrapper.text()).toContain('ส่งเป็ดของฉันไปที่เมือง')
+    }
+    finally {
+      vi.restoreAllMocks()
+    }
+  })
+
   it('shows the result and saves the player after the last question', async () => {
     const wrapper = await mountPage()
     await typeNickname(wrapper, '  มะลิ  ')
@@ -117,7 +136,7 @@ describe('quiz page', () => {
     expect(saved.answers).toHaveLength(questions.length)
     expect(saved.id).toBeTruthy()
     expect(wrapper.text()).toContain('มะลิ')
-    expect(wrapper.text()).toContain('ส่งห่านของฉันไปที่เมือง')
+    expect(wrapper.text()).toContain('ส่งเป็ดของฉันไปที่เมือง')
   })
 
   it('gives the same avatar for the same nickname and answers', async () => {

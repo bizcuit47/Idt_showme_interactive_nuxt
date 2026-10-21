@@ -204,7 +204,7 @@ describe('share page', () => {
   it('links to the map and back to the home page', async () => {
     const wrapper = await mountPage()
 
-    await findButton(wrapper, 'ดูห่านของฉันบนเมือง')!.trigger('click')
+    await findButton(wrapper, 'ดูเป็ดของฉันบนเมือง')!.trigger('click')
     expect(navigateToMock).toHaveBeenLastCalledWith('/map')
 
     await findButton(wrapper, 'กลับสู่หน้าหลัก')!.trigger('click')

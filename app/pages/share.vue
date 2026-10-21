@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
 
       <div flex="~ col" gap-1>
         <button class="link-button" @click="goToMap">
-          ดูห่านของฉันบนเมือง 🏙️
+          ดูเป็ดของฉันบนเมือง 🏙️
         </button>
         <button class="link-button" @click="goHome">
           กลับสู่หน้าหลัก
