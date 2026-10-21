@@ -89,21 +89,16 @@ function playAgain() {
 
     <main class="content">
       <section v-if="step === 'intro'" flex="~ col" gap-6>
-        <div flex="~ col" gap-3 items-start>
-          <span class="neo-pill">NEW: ค้นหาห่านประจำตัวคุณ</span>
-          <h1 class="hero-title">
-            อนาคตของคุณ<br>คือ<span class="neo-outline-text">ห่านตัวไหน?</span>
-          </h1>
-          <p text-base>
-            ตอบ {{ questions.length }} ข้อ ใช้เวลาไม่ถึง 2 นาที
-          </p>
-        </div>
+        <span class="neo-pill" self-start>NEW: ค้นหาห่านประจำตัวคุณ</span>
 
-        <div class="neo-card" p-5 flex="~ col" gap-5>
-          <div class="neo-panel-dark goose-box">
-            <div class="goose-bob" w-52>
-              <GooseImg type="rocket" />
-            </div>
+        <div class="neo-card" p-6 flex="~ col" gap-6>
+          <div flex="~ col" gap-3>
+            <h1 class="hero-title">
+              อนาคตของคุณ<br>คือ<span class="neo-outline-text">ห่านตัวไหน?</span>
+            </h1>
+            <p text-base>
+              ตอบ {{ questions.length }} ข้อ ใช้เวลาไม่ถึง 2 นาที
+            </p>
           </div>
           <form flex="~ col" gap-4 @submit.prevent="start">
             <input
@@ -212,8 +207,8 @@ function playAgain() {
 
 .hero-title {
   margin: 0;
-  font-size: 2.5rem;
-  line-height: 1.15;
+  font-size: 2.75rem;
+  line-height: 1.2;
 }
 
 .goose-box {
@@ -325,10 +320,6 @@ function playAgain() {
   cursor: pointer;
 }
 
-.goose-bob {
-  animation: bob 1.6s ease-in-out infinite;
-}
-
 .goose-pop {
   animation: pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -339,12 +330,6 @@ function playAgain() {
 
 .fade-in {
   animation: fade-in 0.35s ease both;
-}
-
-@keyframes bob {
-  50% {
-    transform: translateY(-12px);
-  }
 }
 
 @keyframes pop {
