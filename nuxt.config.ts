@@ -1,5 +1,8 @@
+import process from 'node:process'
 import { pwa } from './app/config/pwa'
 import { appDescription } from './app/constants/index'
+
+const isTest = process.env.VITEST === 'true'
 
 export default defineNuxtConfig({
   modules: [
@@ -7,7 +10,7 @@ export default defineNuxtConfig({
     '@unocss/nuxt',
     '@pinia/nuxt',
     '@nuxtjs/color-mode',
-    '@vite-pwa/nuxt',
+    ...(isTest ? [] : ['@vite-pwa/nuxt']),
     '@nuxt/eslint',
   ],
 
