@@ -1,6 +1,7 @@
 import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import MapQr from '~/components/Map/MapQr.vue'
 import MapWalker from '~/components/Map/MapWalker.vue'
 import MapPage from '~/pages/map.vue'
 
@@ -29,8 +30,8 @@ function duck(index: number, overrides: Record<string, unknown> = {}) {
   return { id: `00000000-0000-4000-8000-00000000000${index}`, nickname: `เป็ด${index}`, type: 'spark', createdAt: 1000 + index, ...overrides }
 }
 
-async function mountPage() {
-  const wrapper = await mountSuspended(MapPage)
+async function mountPage(route = '/map') {
+  const wrapper = await mountSuspended(MapPage, { route })
   await flushPromises()
   return wrapper
 }
@@ -110,5 +111,42 @@ describe('map page', () => {
     await wrapper.find('button.map-back').trigger('click')
 
     expect(navigateToMock).toHaveBeenCalledWith('/')
+  })
+
+  describe('kiosk mode', () => {
+    it('shows the home button and no QR code on a normal visit', async () => {
+      const wrapper = await mountPage('/map')
+
+      expect(wrapper.find('button.map-back').exists()).toBe(true)
+      expect(wrapper.findComponent(MapQr).exists()).toBe(false)
+    })
+
+    it('hides the home button and shows the QR code with ?kiosk=1', async () => {
+      const wrapper = await mountPage('/map?kiosk=1')
+
+      expect(wrapper.find('button.map-back').exists()).toBe(false)
+      expect(wrapper.findComponent(MapQr).exists()).toBe(true)
+    })
+
+    it('points the QR code at the quiz page of this site', async () => {
+      const wrapper = await mountPage('/map?kiosk=1')
+
+      expect(wrapper.findComponent(MapQr).props('url')).toBe(`${window.location.origin}/`)
+    })
+
+    it('draws the QR code and tells people to scan it', async () => {
+      const wrapper = await mountPage('/map?kiosk=1')
+      const qr = wrapper.findComponent(MapQr)
+
+      expect(qr.find('svg path').attributes('d')).toMatch(/^M/)
+      expect(qr.text()).toContain('สแกน')
+    })
+
+    it('treats any other kiosk value as a normal visit', async () => {
+      const wrapper = await mountPage('/map?kiosk=0')
+
+      expect(wrapper.find('button.map-back').exists()).toBe(true)
+      expect(wrapper.findComponent(MapQr).exists()).toBe(false)
+    })
   })
 })

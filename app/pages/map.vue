@@ -9,8 +9,11 @@ const walkMinY = 1250
 const walkHeadroom = 280
 const walkMinDepth = 120
 const backOffset = 50
+const qrHeight = 400
 
 const me = useMe()
+const route = useRoute()
+const requestUrl = useRequestURL()
 const { width, height } = useWindowSize({ initialWidth: stageWidth, initialHeight: stageHeight })
 
 const stageScale = computed(() => Math.max(width.value / stageWidth, height.value / stageHeight))
@@ -18,12 +21,15 @@ const visibleWidth = computed(() => Math.min(stageWidth, width.value / stageScal
 const visibleHeight = computed(() => Math.min(stageHeight, height.value / stageScale.value))
 const visibleLeft = computed(() => (stageWidth - visibleWidth.value) / 2)
 const visibleTop = computed(() => stageHeight - visibleHeight.value)
+const isKiosk = computed(() => route.query.kiosk === '1')
+const quizUrl = computed(() => `${requestUrl.origin}/`)
 
 const walkBounds = computed<WalkBounds>(() => {
+  const clearedTop = visibleTop.value + (isKiosk.value ? backOffset + qrHeight : 0) + walkHeadroom
   return {
     minX: visibleLeft.value + walkMarginX,
     maxX: stageWidth - visibleLeft.value - walkMarginX,
-    minY: Math.min(Math.max(walkMinY, visibleTop.value + walkHeadroom), walkMaxY - walkMinDepth),
+    minY: Math.min(Math.max(walkMinY, clearedTop), walkMaxY - walkMinDepth),
     maxY: walkMaxY,
   }
 })
@@ -31,6 +37,10 @@ const stageStyle = computed(() => ({
   width: `${stageWidth}px`,
   height: `${stageHeight}px`,
   transform: `translateX(-50%) scale(${stageScale.value})`,
+}))
+const qrStyle = computed(() => ({
+  left: `${visibleLeft.value + backOffset}px`,
+  top: `${visibleTop.value + backOffset}px`,
 }))
 const backStyle = computed(() => ({
   right: `${visibleLeft.value + backOffset}px`,
@@ -74,7 +84,9 @@ function playAgain() {
           @left="removeDuck(duck.id)"
         />
 
-        <button class="map-back" :style="backStyle" aria-label="เล่นอีกครั้ง" @click="playAgain">
+        <MapQr v-if="isKiosk" :url="quizUrl" :style="qrStyle" />
+
+        <button v-if="!isKiosk" class="map-back" :style="backStyle" aria-label="เล่นอีกครั้ง" @click="playAgain">
           <img src="/home-icon.png" alt="">
         </button>
       </div>
