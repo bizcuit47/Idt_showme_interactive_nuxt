@@ -245,55 +245,112 @@ export function createCharacterPainter(
 
 const backdropTolerance = 42
 
+function spreadAlongLine(
+  isSource: (index: number) => boolean,
+  mark: (index: number) => void,
+  start: number,
+  step: number,
+  length: number,
+  radius: number,
+) {
+  let run = 0
+  for (let offset = 0; offset < length; offset++) {
+    const index = start + offset * step
+    if (isSource(index))
+      run = radius + 1
+    if (run > 0) {
+      mark(index)
+      run--
+    }
+  }
+}
+
 function dilateCharacter(outside: Uint8Array, width: number, height: number, radius: number) {
-  const count = width * height
-  const horizontal = new Uint8Array(count)
-  for (let y = 0; y < height; y++) {
-    const row = y * width
-    let run = 0
-    for (let x = 0; x < width; x++) {
-      if (!outside[row + x])
-        run = radius + 1
-      if (run > 0) {
-        horizontal[row + x] = 1
-        run--
-      }
-    }
-    run = 0
-    for (let x = width - 1; x >= 0; x--) {
-      if (!outside[row + x])
-        run = radius + 1
-      if (run > 0) {
-        horizontal[row + x] = 1
-        run--
-      }
-    }
+  const horizontal = new Uint8Array(width * height)
+  const keep = new Uint8Array(width * height)
+  const isInside = (index: number) => !outside[index]
+  const isHorizontal = (index: number) => horizontal[index] === 1
+  const markHorizontal = (index: number) => {
+    horizontal[index] = 1
+  }
+  const markKeep = (index: number) => {
+    keep[index] = 1
   }
 
-  const keep = new Uint8Array(count)
+  for (let y = 0; y < height; y++) {
+    spreadAlongLine(isInside, markHorizontal, y * width, 1, width, radius)
+    spreadAlongLine(isInside, markHorizontal, y * width + width - 1, -1, width, radius)
+  }
   for (let x = 0; x < width; x++) {
-    let run = 0
-    for (let y = 0; y < height; y++) {
-      const index = y * width + x
-      if (horizontal[index])
-        run = radius + 1
-      if (run > 0) {
-        keep[index] = 1
-        run--
-      }
-    }
-    run = 0
-    for (let y = height - 1; y >= 0; y--) {
-      const index = y * width + x
-      if (horizontal[index])
-        run = radius + 1
-      if (run > 0) {
-        keep[index] = 1
-        run--
-      }
-    }
+    spreadAlongLine(isHorizontal, markKeep, x, width, height, radius)
+    spreadAlongLine(isHorizontal, markKeep, (height - 1) * width + x, -width, height, radius)
   }
   return keep
+}
+
+interface BackdropFlood {
+  data: Uint8ClampedArray
+  width: number
+  count: number
+  color: [number, number, number]
+  outside: Uint8Array
+  stack: Int32Array
+  top: number
+}
+
+function findOpaquePixel(data: Uint8ClampedArray, count: number): number {
+  for (let index = 0; index < count; index++) {
+    if (data[index * 4 + 3]! > 200)
+      return index
+  }
+  return -1
+}
+
+function isBackdropPixel(flood: BackdropFlood, index: number): boolean {
+  const { data, color } = flood
+  const offset = index * 4
+  if (data[offset + 3]! < 16)
+    return true
+  return Math.abs(data[offset]! - color[0]) + Math.abs(data[offset + 1]! - color[1]) + Math.abs(data[offset + 2]! - color[2]) <= backdropTolerance
+}
+
+function pushBackdrop(flood: BackdropFlood, index: number) {
+  if (flood.outside[index] || !isBackdropPixel(flood, index))
+    return
+  flood.outside[index] = 1
+  flood.stack[flood.top++] = index
+}
+
+function seedBackdrop(flood: BackdropFlood, height: number) {
+  const { width, count, data } = flood
+  for (let x = 0; x < width; x++) {
+    pushBackdrop(flood, x)
+    pushBackdrop(flood, (height - 1) * width + x)
+  }
+  for (let y = 0; y < height; y++) {
+    pushBackdrop(flood, y * width)
+    pushBackdrop(flood, y * width + width - 1)
+  }
+  for (let index = 0; index < count; index++) {
+    if (data[index * 4 + 3]! < 16)
+      pushBackdrop(flood, index)
+  }
+}
+
+function spreadBackdrop(flood: BackdropFlood) {
+  const { width, count } = flood
+  while (flood.top > 0) {
+    const index = flood.stack[--flood.top]!
+    const x = index % width
+    if (x > 0)
+      pushBackdrop(flood, index - 1)
+    if (x < width - 1)
+      pushBackdrop(flood, index + 1)
+    if (index >= width)
+      pushBackdrop(flood, index - width)
+    if (index < count - width)
+      pushBackdrop(flood, index + width)
+  }
 }
 
 export function clearConnectedBackdrop(context: CanvasRenderingContext2D) {
@@ -301,65 +358,24 @@ export function clearConnectedBackdrop(context: CanvasRenderingContext2D) {
   const pixels = context.getImageData(0, 0, width, height)
   const data = pixels.data
   const count = width * height
-  let sample = -1
-  for (let index = 0; index < count; index++) {
-    if (data[index * 4 + 3]! > 200) {
-      sample = index
-      break
-    }
-  }
+  const sample = findOpaquePixel(data, count)
   if (sample < 0)
     return
 
   const base = sample * 4
-  const red = data[base]!
-  const green = data[base + 1]!
-  const blue = data[base + 2]!
-  const outside = new Uint8Array(count)
-  const stack = new Int32Array(count)
-  let top = 0
+  const flood: BackdropFlood = {
+    data,
+    width,
+    count,
+    color: [data[base]!, data[base + 1]!, data[base + 2]!],
+    outside: new Uint8Array(count),
+    stack: new Int32Array(count),
+    top: 0,
+  }
+  seedBackdrop(flood, height)
+  spreadBackdrop(flood)
 
-  function isBackdrop(index: number) {
-    const offset = index * 4
-    if (data[offset + 3]! < 16)
-      return true
-    return Math.abs(data[offset]! - red) + Math.abs(data[offset + 1]! - green) + Math.abs(data[offset + 2]! - blue) <= backdropTolerance
-  }
-
-  function push(index: number) {
-    if (outside[index] || !isBackdrop(index))
-      return
-    outside[index] = 1
-    stack[top++] = index
-  }
-
-  for (let x = 0; x < width; x++) {
-    push(x)
-    push((height - 1) * width + x)
-  }
-  for (let y = 0; y < height; y++) {
-    push(y * width)
-    push(y * width + width - 1)
-  }
-  for (let index = 0; index < count; index++) {
-    if (data[index * 4 + 3]! < 16)
-      push(index)
-  }
-
-  while (top > 0) {
-    const index = stack[--top]!
-    const x = index % width
-    if (x > 0)
-      push(index - 1)
-    if (x < width - 1)
-      push(index + 1)
-    if (index >= width)
-      push(index - width)
-    if (index < count - width)
-      push(index + width)
-  }
-
-  const keep = dilateCharacter(outside, width, height, Math.max(3, Math.round(width / 220)))
+  const keep = dilateCharacter(flood.outside, width, height, Math.max(3, Math.round(width / 220)))
   for (let index = 0; index < count; index++) {
     if (!keep[index])
       data[index * 4 + 3] = 0
