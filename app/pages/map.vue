@@ -41,11 +41,31 @@ const backStyle = computed(() => ({
   bottom: `${backOffset}px`,
 }))
 
-const npcs = Array.from({ length: demoNpcCount }, (_, index) => ({
-  id: index,
-  nickname: demoNames[index]!,
-  type: avatars[(index * 2 + 1) % avatars.length]!.id,
-}))
+const { ducks, addDuck, removeDuck } = useDuckField()
+
+for (let index = 0; index < demoNpcCount; index++) {
+  addDuck({
+    id: `npc-${index}`,
+    nickname: demoNames[index]!,
+    type: avatars[(index * 2 + 1) % avatars.length]!.id,
+    isSelf: false,
+    isEntering: false,
+    enterDelayMs: 0,
+  })
+}
+
+watch(me, (player) => {
+  if (!player)
+    return
+  addDuck({
+    id: player.id,
+    nickname: player.nickname,
+    type: player.avatarType,
+    isSelf: true,
+    isEntering: true,
+    enterDelayMs: 700,
+  })
+}, { immediate: true })
 
 function playAgain() {
   navigateTo('/')
@@ -59,21 +79,16 @@ function playAgain() {
         <img class="map-scene" src="/map-background.png" alt="">
 
         <MapWalker
-          v-for="npc in npcs"
-          :key="npc.id"
-          :type="npc.type"
-          :nickname="npc.nickname"
+          v-for="duck in ducks"
+          :key="duck.id"
+          :type="duck.type"
+          :nickname="duck.nickname"
           :bounds="walkBounds"
-        />
-
-        <MapWalker
-          :key="me.id"
-          :type="me.avatarType"
-          :nickname="me.nickname"
-          :bounds="walkBounds"
-          :enter-delay-ms="700"
-          is-entering
-          is-self
+          :is-entering="duck.isEntering"
+          :is-leaving="duck.isLeaving"
+          :is-self="duck.isSelf"
+          :enter-delay-ms="duck.enterDelayMs"
+          @left="removeDuck(duck.id)"
         />
 
         <button class="map-back" :style="backStyle" aria-label="เล่นอีกครั้ง" @click="playAgain">

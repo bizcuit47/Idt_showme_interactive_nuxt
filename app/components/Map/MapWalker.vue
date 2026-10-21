@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import type { AvatarId, WalkBounds } from '~/types'
-import type { CharacterPainter, GoosePose } from '~/utils/goose'
+import type { CharacterSource } from '~/utils/characterSource'
 
 import { getAvatar } from '~/data/avatars'
-import { avatarImageUrl, characterBottomRatio, createCharacterPainter } from '~/utils/goose'
+import { characterCanvasSize, characterFillRatio, getCharacterSource } from '~/utils/characterSource'
+import { characterBottomRatio } from '~/utils/goose'
 
 type Phase = 'waiting' | 'resting' | 'walking'
 
-const { type, nickname, bounds, isEntering = false, isSelf = false, enterDelayMs = 0 } = defineProps<{
+const { type, nickname, bounds, isEntering = false, isLeaving = false, isSelf = false, enterDelayMs = 0 } = defineProps<{
   type: AvatarId
   nickname: string
   bounds: WalkBounds
   isEntering?: boolean
+  isLeaving?: boolean
   isSelf?: boolean
   enterDelayMs?: number
 }>()
 
-const gooseSize = 200
-const characterHeightRatio = 0.8
+const emit = defineEmits<{ left: [] }>()
+
+const gooseSize = characterCanvasSize
+const characterHeightRatio = characterFillRatio
 const depthScaleMin = 1
 const depthScaleMax = 1
 const nameGap = 70
@@ -33,19 +37,9 @@ const maxWanderY = 160
 const rootElement = useTemplateRef<HTMLElement>('root')
 const shadowElement = useTemplateRef<HTMLElement>('shadow')
 const flipElement = useTemplateRef<HTMLElement>('flip')
-const imageElement = useTemplateRef<HTMLVideoElement>('image')
 const canvasElement = useTemplateRef<HTMLCanvasElement>('canvas')
 
 const nameTop = gooseSize * (1 - characterBottomRatio - characterHeightRatio) - nameGap
-
-const poseUrls = computed(() => {
-  const avatar = getAvatar(type)
-  return {
-    stand: avatarImageUrl(avatar, 'stand'),
-    walk: avatarImageUrl(avatar, 'walk'),
-    walk2: avatarImageUrl(avatar, 'walk2'),
-  } satisfies Record<GoosePose, string>
-})
 
 let phase: Phase = isEntering ? 'waiting' : 'resting'
 let phaseClock = isEntering ? enterDelayMs / 1000 : randomBetween(0.2, 2)
@@ -54,6 +48,7 @@ let y = randomBetween(bounds.minY, bounds.maxY)
 let targetX = x
 let targetY = y
 let fade = isEntering ? 0 : 1
+let hasLeft = false
 let facing = 1
 let elapsed = 0
 
@@ -126,8 +121,16 @@ function update(deltaSeconds: number) {
     updateWalk(deltaSeconds)
   }
 
-  if (phase !== 'waiting')
+  if (isLeaving) {
+    fade = Math.max(0, fade - deltaSeconds / fadeSeconds)
+    if (fade === 0 && !hasLeft) {
+      hasLeft = true
+      emit('left')
+    }
+  }
+  else if (phase !== 'waiting') {
     fade = Math.min(1, fade + deltaSeconds / fadeSeconds)
+  }
 
   render()
 }
@@ -136,8 +139,7 @@ function render() {
   const root = rootElement.value
   const shadow = shadowElement.value
   const flip = flipElement.value
-  const image = imageElement.value
-  if (!root || !shadow || !flip || !image)
+  if (!root || !shadow || !flip)
     return
 
   const isWalking = phase === 'walking'
@@ -152,39 +154,22 @@ function render() {
   shadow.style.opacity = String(0.35 * (1 - lift * 0.3))
   shadow.style.transform = `translateX(calc(-50% + ${footShift}px)) scale(${1 - lift * 0.2})`
   flip.style.transform = `translateY(${-bounce}px) rotate(${sway}deg) scaleX(${facing})`
-  drawFrame(image)
+  drawFrame()
 }
 
-let drawnTime = -1
-let hasNewFrame = false
-let isFrameWatched = false
-let painter: CharacterPainter | null = null
+let drawnVersion = -1
+let source: CharacterSource | null = null
+let context: CanvasRenderingContext2D | null = null
 
-function watchVideoFrames(video: HTMLVideoElement) {
-  if (typeof video.requestVideoFrameCallback !== 'function')
+function drawFrame() {
+  if (!source || !context)
     return
-  isFrameWatched = true
-  const markFrame = () => {
-    hasNewFrame = true
-    video.requestVideoFrameCallback(markFrame)
-  }
-  video.requestVideoFrameCallback(markFrame)
-}
-
-function drawFrame(video: HTMLVideoElement) {
-  if (!painter || video.readyState < 2)
+  const version = source.refresh()
+  if (version === drawnVersion)
     return
-  if (isFrameWatched) {
-    if (!hasNewFrame)
-      return
-    hasNewFrame = false
-  }
-  else {
-    if (video.currentTime === drawnTime)
-      return
-    drawnTime = video.currentTime
-  }
-  painter.draw(video)
+  drawnVersion = version
+  context.clearRect(0, 0, gooseSize, gooseSize)
+  context.drawImage(source.canvas, 0, 0)
 }
 
 useRafFn(({ delta }) => update(Math.min(delta / 1000, 0.05)))
@@ -194,10 +179,9 @@ onMounted(() => {
   if (canvas) {
     canvas.width = gooseSize
     canvas.height = gooseSize
-    painter = createCharacterPainter(canvas, getAvatar(type).framing, characterHeightRatio)
+    context = canvas.getContext('2d')
+    source = getCharacterSource(type)
   }
-  if (imageElement.value)
-    watchVideoFrames(imageElement.value)
   render()
 })
 </script>
@@ -213,15 +197,6 @@ onMounted(() => {
       {{ nickname }}
     </div>
     <div ref="flip" class="map-walker-flip">
-      <video
-        ref="image"
-        class="map-walker-source"
-        :src="poseUrls.walk"
-        autoplay
-        loop
-        muted
-        playsinline
-      />
       <canvas ref="canvas" class="map-walker-image" />
     </div>
   </div>
@@ -242,15 +217,6 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   transform-origin: 50% 100%;
-}
-
-.map-walker-source {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .map-walker-image {

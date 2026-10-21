@@ -158,7 +158,7 @@ export function createCharacterPainter(
   framing?: AvatarFraming,
   heightRatio = characterHeightRatio,
 ): CharacterPainter | null {
-  const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false })
+  const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: true })
   if (!gl)
     return null
 
