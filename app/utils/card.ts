@@ -6,9 +6,14 @@ export const cardWidth = 1080
 export const cardHeight = 1920
 
 const centerX = cardWidth / 2
-const fontFamily = '"Noto Sans Thai", "Noto Sans", system-ui, sans-serif'
+const fontFamily = '"Cabinet Grotesk", "Satoshi", "Noto Sans Thai", system-ui, sans-serif'
+const yellow = '#ffe17c'
+const charcoal = '#171e19'
+const sage = '#b7c6c2'
+const borderWidth = 6
+const shadowOffset = 24
 
-const videoPattern = /\.(mp4|webm|mov)(?:$|\?)/i
+const videoPattern = /\.(?:mp4|webm|mov)(?:$|\?)/i
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -27,7 +32,7 @@ function loadVideoFrame(src: string): Promise<HTMLVideoElement> {
     video.playsInline = true
     video.preload = 'auto'
     video.crossOrigin = 'anonymous'
-    const timer = window.setTimeout(() => fail(), 8000)
+    const timer = window.setTimeout(fail, 8000)
 
     function fail() {
       window.clearTimeout(timer)
@@ -126,31 +131,68 @@ function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, wi
   ctx.closePath()
 }
 
-function drawBackground(ctx: CanvasRenderingContext2D, color: string) {
-  const background = ctx.createLinearGradient(0, 0, 0, cardHeight)
-  background.addColorStop(0, '#12132b')
-  background.addColorStop(0.55, '#2a1f5c')
-  background.addColorStop(1, '#12132b')
-  ctx.fillStyle = background
-  ctx.fillRect(0, 0, cardWidth, cardHeight)
+function drawDots(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = 'rgb(0 0 0 / 0.1)'
+  for (let y = 16; y < cardHeight; y += 96) {
+    for (let x = 16; x < cardWidth; x += 96) {
+      ctx.beginPath()
+      ctx.arc(x, y, 6, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}
 
-  const glow = ctx.createRadialGradient(centerX, 720, 60, centerX, 720, 640)
-  glow.addColorStop(0, `${color}aa`)
-  glow.addColorStop(1, `${color}00`)
-  ctx.fillStyle = glow
-  ctx.fillRect(0, 150, cardWidth, 1100)
+function drawBackground(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = yellow
+  ctx.fillRect(0, 0, cardWidth, cardHeight)
+  drawDots(ctx)
+}
+
+function drawBox(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, fill: string, shadow = 0) {
+  if (shadow) {
+    ctx.fillStyle = '#000'
+    drawRoundedRect(ctx, x + shadow, y + shadow, width, height, radius)
+    ctx.fill()
+  }
+  drawRoundedRect(ctx, x, y, width, height, radius)
+  ctx.fillStyle = fill
+  ctx.fill()
+  ctx.lineWidth = borderWidth
+  ctx.strokeStyle = '#000'
+  ctx.stroke()
+}
+
+function drawBolt(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const points: Array<[number, number]> = [[58, 12], [24, 56], [46, 56], [40, 88], [76, 42], [54, 42]]
+  ctx.beginPath()
+  for (const [index, [px, py]] of points.entries()) {
+    const targetX = x + (px / 100) * size
+    const targetY = y + (py / 100) * size
+    if (index === 0)
+      ctx.moveTo(targetX, targetY)
+    else
+      ctx.lineTo(targetX, targetY)
+  }
+  ctx.closePath()
+  ctx.fillStyle = yellow
+  ctx.fill()
 }
 
 function drawHeader(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = '#ffd166'
-  setFont(ctx, 800, 64)
-  ctx.letterSpacing = '12px'
-  ctx.fillText('FUTURE WALL', centerX, 170)
-  ctx.letterSpacing = '0px'
+  ctx.fillStyle = '#000'
+  ctx.fillRect(60, 70, 100, 100)
+  drawBolt(ctx, 60, 70, 100)
 
-  ctx.fillStyle = 'rgb(255 255 255 / 0.7)'
-  setFont(ctx, 400, 34)
-  ctx.fillText('อนาคตของฉันคือ...', centerX, 232)
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#000'
+  setFont(ctx, 800, 72)
+  ctx.fillText('FUTURE WALL', 190, 146)
+
+  drawBox(ctx, 770, 85, 250, 70, 35, '#fff')
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#000'
+  setFont(ctx, 700, 32)
+  ctx.fillText('Season 6', 895, 131)
 }
 
 async function drawAvatar(ctx: CanvasRenderingContext2D, avatar: AvatarDef) {
@@ -158,47 +200,54 @@ async function drawAvatar(ctx: CanvasRenderingContext2D, avatar: AvatarDef) {
   const source = videoPattern.test(src) ? withoutBlackBackground(await loadVideoFrame(src)) : await loadImage(src)
   const naturalWidth = source.width
   const naturalHeight = source.height
-  const boxSize = 760
+  const boxWidth = 780
+  const boxHeight = 660
   const ratio = (naturalWidth || 1) / (naturalHeight || 1)
-  const width = ratio >= 1 ? boxSize : boxSize * ratio
-  const height = ratio >= 1 ? boxSize / ratio : boxSize
-  ctx.drawImage(source, centerX - width / 2, 330 + (boxSize - height) / 2, width, height)
+  const width = Math.min(boxWidth, boxHeight * ratio)
+  const height = width / ratio
+  ctx.drawImage(source, centerX - width / 2, 400 + (boxHeight - height) / 2, width, height)
+}
+
+function drawPanel(ctx: CanvasRenderingContext2D) {
+  drawBox(ctx, 60, 250, 960, 1390, 48, '#fff', shadowOffset)
+  ctx.fillStyle = '#000'
+  setFont(ctx, 500, 40)
+  ctx.fillText('อนาคตของฉันคือ...', centerX, 330)
+  drawBox(ctx, 110, 370, 860, 680, 36, charcoal)
 }
 
 function drawNamePlate(ctx: CanvasRenderingContext2D, nickname: string, avatar: AvatarDef) {
-  ctx.fillStyle = '#ffffff'
-  drawFittedText(ctx, nickname, 1210, 900, 120, 800)
+  ctx.fillStyle = '#000'
+  drawFittedText(ctx, nickname, 1170, 820, 112, 800)
 
-  ctx.fillStyle = avatar.color
-  drawRoundedRect(ctx, 90, 1260, 900, 120, 60)
-  ctx.fill()
-  ctx.fillStyle = '#12132b'
-  drawFittedText(ctx, avatar.title, 1340, 820, 58, 800)
+  drawBox(ctx, 110, 1210, 860, 110, 22, charcoal)
+  ctx.fillStyle = yellow
+  drawFittedText(ctx, avatar.title, 1286, 780, 54, 800)
 
-  ctx.fillStyle = 'rgb(255 255 255 / 0.85)'
-  setFont(ctx, 400, 42)
-  const lines = wrapLines(ctx, avatar.blurb, 840).slice(0, 3)
+  ctx.fillStyle = '#000'
+  setFont(ctx, 500, 40)
+  const lines = wrapLines(ctx, avatar.blurb, 820).slice(0, 2)
   for (const [index, line] of lines.entries())
-    ctx.fillText(line, centerX, 1450 + index * 64)
+    ctx.fillText(line, centerX, 1400 + index * 58)
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = 'rgb(255 255 255 / 0.2)'
-  ctx.fillRect(140, 1730, 800, 3)
+  ctx.fillStyle = charcoal
+  ctx.fillRect(0, 1740, cardWidth, 180)
 
-  ctx.fillStyle = 'rgb(255 255 255 / 0.8)'
-  setFont(ctx, 700, 36)
-  ctx.fillText('วัยรุ่นมีของ Startup Season 6', centerX, 1800)
+  ctx.fillStyle = yellow
+  setFont(ctx, 700, 40)
+  ctx.fillText('วัยรุ่นมีของ Startup Season 6', centerX, 1818)
 
-  ctx.fillStyle = 'rgb(255 255 255 / 0.5)'
-  setFont(ctx, 400, 30)
-  ctx.fillText('Increstive Company Limited | SIAMSCAPE | 30-31 ต.ค. 2569', centerX, 1855)
+  ctx.fillStyle = sage
+  setFont(ctx, 500, 30)
+  ctx.fillText('Increstive Company Limited | SIAMSCAPE | 30-31 ต.ค. 2569', centerX, 1868)
 }
 
 async function waitForFonts() {
   const sample = 'สวัสดี Hello'
   await Promise.allSettled([
-    document.fonts.load(`400 40px ${fontFamily}`, sample),
+    document.fonts.load(`500 40px ${fontFamily}`, sample),
     document.fonts.load(`700 40px ${fontFamily}`, sample),
     document.fonts.load(`800 40px ${fontFamily}`, sample),
   ])
@@ -214,8 +263,9 @@ export async function renderCard(nickname: string, avatar: AvatarDef): Promise<B
   ctx.textAlign = 'center'
   ctx.textBaseline = 'alphabetic'
 
-  drawBackground(ctx, avatar.color)
+  drawBackground(ctx)
   drawHeader(ctx)
+  drawPanel(ctx)
   await drawAvatar(ctx, avatar)
   drawNamePlate(ctx, nickname, avatar)
   drawFooter(ctx)

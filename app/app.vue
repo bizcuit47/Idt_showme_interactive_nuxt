@@ -23,15 +23,4 @@ body,
   margin: 0;
   padding: 0;
 }
-
-html {
-  color-scheme: dark;
-  background: #12132b;
-}
-
-body {
-  font-family: 'Noto Sans Thai', system-ui, sans-serif;
-  color: #fff;
-  -webkit-tap-highlight-color: transparent;
-}
 </style>

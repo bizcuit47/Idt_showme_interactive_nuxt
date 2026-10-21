@@ -98,19 +98,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="page" px-5 py-8 flex min-h-screen justify-center>
-    <div flex="~ col" gap-5 max-w-md w-full>
-      <header text-center>
-        <div text-sm tracking-widest font-extrabold text="[#ffd166]">
-          FUTURE WALL
-        </div>
-        <h1 text-2xl font-extrabold mt-2>
+  <div class="page dot-pattern">
+    <AppHeader />
+
+    <main class="content">
+      <div flex="~ col" gap-2>
+        <h1 class="share-title">
           การ์ดของคุณพร้อมแล้ว
         </h1>
-        <p text-sm mt-1 text="white/70">
+        <p text-sm>
           บันทึกหรือแชร์ไปลงสตอรี่ได้เลย
         </p>
-      </header>
+      </div>
 
       <div class="card-frame">
         <img v-if="cardUrl" class="card-image" :src="cardUrl" alt="การ์ด Avatar ของคุณ">
@@ -122,7 +121,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div flex="~ col" gap-3>
+      <div flex="~ col" gap-4>
         <ButtonPrimary :is-disabled="!cardUrl" @click="download">
           ดาวน์โหลดรูป
         </ButtonPrimary>
@@ -137,7 +136,7 @@ onBeforeUnmount(() => {
         </ButtonSecondary>
       </div>
 
-      <p v-if="statusMessage" text-sm text-center text="white/80">
+      <p v-if="statusMessage" class="neo-pill status-pill">
         {{ statusMessage }}
       </p>
 
@@ -149,13 +148,30 @@ onBeforeUnmount(() => {
           กลับสู่หน้าหลัก
         </button>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 </template>
 
 <style scoped>
 .page {
-  background: linear-gradient(to bottom, #12132b, #2a1f5c, #12132b);
+  min-height: 100vh;
+}
+
+.content {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.share-title {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.15;
 }
 
 .card-frame {
@@ -163,9 +179,10 @@ onBeforeUnmount(() => {
   width: min(100%, 280px);
   aspect-ratio: 9 / 16;
   overflow: hidden;
-  border-radius: 1.25rem;
-  background: rgb(255 255 255 / 0.08);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.4);
+  border: var(--fw-border);
+  border-radius: 1rem;
+  background: var(--fw-sage);
+  box-shadow: var(--fw-shadow-lg);
 }
 
 .card-image {
@@ -179,17 +196,25 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: rgb(255 255 255 / 0.6);
   font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.status-pill {
+  align-self: center;
+  border-radius: 0.75rem;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .link-button {
   padding: 0.5rem;
   border: 0;
   background: none;
-  color: rgb(255 255 255 / 0.7);
+  color: #000;
   font: inherit;
   font-size: 0.95rem;
+  font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }

@@ -257,19 +257,21 @@ onMounted(() => {
 .map-walker-name {
   position: absolute;
   left: 50%;
-  top: -28px;
-  padding: 4px 18px;
+  top: -34px;
+  padding: 2px 20px;
+  border: 5px solid #000;
   border-radius: 9999px;
-  background: rgb(18 19 43 / 0.75);
-  color: #fff;
+  background: #fff;
+  box-shadow: 6px 6px 0 0 #000;
+  color: #000;
+  font-family: var(--fw-font-heading);
   font-size: 30px;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
   transform: translateX(-50%);
 }
 
 .map-walker-name-self {
-  background: #ffd166;
-  color: #12132b;
+  background: var(--fw-yellow);
 }
 </style>

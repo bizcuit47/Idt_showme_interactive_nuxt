@@ -13,22 +13,23 @@ const { type = 'button', isDisabled = false } = defineProps<{
 
 <style scoped>
 .button-primary {
-  padding: 1rem;
-  border: 0;
-  border-radius: 1rem;
-  background: #ffd166;
-  color: #12132b;
-  font: inherit;
+  padding: 1rem 2rem;
+  border: var(--fw-border);
+  border-radius: 0.75rem;
+  background: #000;
+  box-shadow: var(--fw-shadow-lg);
+  color: #fff;
+  font-family: var(--fw-font-heading);
   font-size: 1.125rem;
   font-weight: 800;
   cursor: pointer;
-  transition:
-    transform 0.15s,
-    opacity 0.15s;
+  transition: all 0.2s var(--fw-push-ease);
 }
 
-.button-primary:active {
-  transform: scale(0.96);
+.button-primary:hover:not(:disabled),
+.button-primary:active:not(:disabled) {
+  box-shadow: var(--fw-shadow-sm);
+  transform: translate(4px, 4px);
 }
 
 .button-primary:disabled {

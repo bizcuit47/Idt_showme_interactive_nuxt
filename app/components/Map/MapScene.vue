@@ -1,22 +1,33 @@
 <script setup lang="ts">
+const sky = '#b7c6c2'
+const yellow = '#ffe17c'
+const charcoal = '#171e19'
+
 const buildings = [
-  { x: 20, width: 150, height: 430, color: '#3b3f7a' },
-  { x: 150, width: 120, height: 330, color: '#5b4fa8' },
-  { x: 290, width: 170, height: 520, color: '#2f5f9e' },
-  { x: 470, width: 130, height: 380, color: '#7a4fa8' },
-  { x: 620, width: 160, height: 470, color: '#3f6fb0' },
-  { x: 790, width: 120, height: 340, color: '#5d4f9f' },
-  { x: 920, width: 150, height: 450, color: '#2f4f8f' },
+  { x: 30, width: 150, height: 400, fill: '#fff', windows: 'map-windows-dark' },
+  { x: 190, width: 120, height: 300, fill: charcoal, windows: 'map-windows-light' },
+  { x: 330, width: 170, height: 500, fill: yellow, windows: 'map-windows-dark' },
+  { x: 520, width: 130, height: 350, fill: charcoal, windows: 'map-windows-light' },
+  { x: 670, width: 160, height: 440, fill: '#fff', windows: 'map-windows-dark' },
+  { x: 850, width: 190, height: 330, fill: yellow, windows: 'map-windows-dark' },
+]
+
+const clouds = [
+  { x: 220, y: 330, rx: 120, ry: 34 },
+  { x: 700, y: 400, rx: 140, ry: 36 },
 ]
 
 const trees = [
-  { x: 70, y: 1080, size: 1 },
-  { x: 1010, y: 1110, size: 1.1 },
+  { x: 80, y: 1120, size: 1 },
+  { x: 1000, y: 1150, size: 1.1 },
   { x: 90, y: 1840, size: 1.2 },
   { x: 980, y: 1850, size: 1.15 },
 ]
 
 const groundTop = 880
+const roadTop = 1000
+const roadHeight = 110
+const shadow = 12
 </script>
 
 <template>
@@ -26,52 +37,60 @@ const groundTop = 880
     preserveAspectRatio="xMidYMid slice"
   >
     <defs>
-      <linearGradient id="map-sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#14163a" />
-        <stop offset="0.6" stop-color="#3a2b7a" />
-        <stop offset="1" stop-color="#e58a6b" />
-      </linearGradient>
-      <linearGradient id="map-ground" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#3f8f5a" />
-        <stop offset="1" stop-color="#1f5a3c" />
-      </linearGradient>
-      <pattern id="map-windows" width="30" height="40" patternUnits="userSpaceOnUse">
-        <rect x="8" y="8" width="14" height="20" rx="2" fill="#ffe9a8" fill-opacity="0.75" />
+      <pattern id="map-dots" width="96" height="96" patternUnits="userSpaceOnUse">
+        <circle cx="16" cy="16" r="6" fill="#b7c6c2" fill-opacity="0.18" />
+      </pattern>
+      <pattern id="map-windows-dark" width="40" height="56" patternUnits="userSpaceOnUse">
+        <rect x="10" y="12" width="20" height="28" fill="#171e19" />
+      </pattern>
+      <pattern id="map-windows-light" width="40" height="56" patternUnits="userSpaceOnUse">
+        <rect x="10" y="12" width="20" height="28" fill="#ffe17c" />
       </pattern>
     </defs>
 
-    <rect width="1080" :height="groundTop + 40" fill="url(#map-sky)" />
-    <circle cx="880" cy="250" r="90" fill="#ffd166" fill-opacity="0.9" />
-    <g fill="#fff" fill-opacity="0.18">
-      <ellipse cx="220" cy="300" rx="130" ry="36" />
-      <ellipse cx="300" cy="270" rx="90" ry="30" />
-      <ellipse cx="700" cy="440" rx="150" ry="38" />
+    <rect width="1080" :height="groundTop + 6" :fill="sky" />
+
+    <circle :cx="890 + shadow" :cy="260 + shadow" r="90" fill="#000" />
+    <circle cx="890" cy="260" r="90" fill="#fff" stroke="#000" stroke-width="6" />
+
+    <g v-for="cloud in clouds" :key="cloud.x">
+      <ellipse :cx="cloud.x + shadow" :cy="cloud.y + shadow" :rx="cloud.rx" :ry="cloud.ry" fill="#000" />
+      <ellipse :cx="cloud.x" :cy="cloud.y" :rx="cloud.rx" :ry="cloud.ry" fill="#fff" stroke="#000" stroke-width="6" />
     </g>
 
     <g v-for="building in buildings" :key="building.x">
       <rect
+        :x="building.x + shadow" :y="groundTop - building.height + shadow"
+        :width="building.width" :height="building.height"
+        fill="#000"
+      />
+      <rect
         :x="building.x" :y="groundTop - building.height"
         :width="building.width" :height="building.height"
-        :fill="building.color"
+        :fill="building.fill" stroke="#000" stroke-width="6"
       />
       <rect
         :x="building.x" :y="groundTop - building.height + 20"
         :width="building.width" :height="building.height - 60"
-        fill="url(#map-windows)"
+        :fill="`url(#${building.windows})`"
       />
     </g>
 
-    <rect :y="groundTop" width="1080" :height="1920 - groundTop" fill="url(#map-ground)" />
-    <rect y="1000" width="1080" height="110" fill="#8d8aa8" fill-opacity="0.35" />
-    <g stroke="#fff" stroke-opacity="0.45" stroke-width="8" stroke-dasharray="60 50">
-      <line x1="0" y1="1055" x2="1080" y2="1055" />
-    </g>
+    <rect :y="groundTop" width="1080" :height="1920 - groundTop" :fill="charcoal" stroke="#000" stroke-width="6" />
+    <rect :y="groundTop" width="1080" :height="1920 - groundTop" fill="url(#map-dots)" />
+
+    <rect :y="roadTop" width="1080" :height="roadHeight" :fill="sky" stroke="#000" stroke-width="6" />
+    <line
+      x1="0" :y1="roadTop + roadHeight / 2" x2="1080" :y2="roadTop + roadHeight / 2"
+      stroke="#171e19" stroke-width="8" stroke-dasharray="60 50"
+    />
 
     <g v-for="tree in trees" :key="`${tree.x}-${tree.y}`" :transform="`translate(${tree.x} ${tree.y}) scale(${tree.size})`">
-      <rect x="-12" y="-20" width="24" height="90" rx="8" fill="#6b4a2f" />
-      <circle cx="0" cy="-60" r="62" fill="#2f9e5a" />
-      <circle cx="-34" cy="-30" r="42" fill="#3cb36a" />
-      <circle cx="34" cy="-34" r="40" fill="#34a860" />
+      <rect x="-14" y="-20" width="28" height="90" :fill="charcoal" stroke="#000" stroke-width="6" />
+      <circle :cx="shadow" :cy="-60 + shadow" r="62" fill="#000" />
+      <circle cx="0" cy="-60" r="62" fill="#fff" stroke="#000" stroke-width="6" />
+      <circle cx="-22" cy="-70" r="14" :fill="sky" stroke="#000" stroke-width="4" />
+      <circle cx="24" cy="-48" r="10" :fill="sky" stroke="#000" stroke-width="4" />
     </g>
   </svg>
 </template>

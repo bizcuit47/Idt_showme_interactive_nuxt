@@ -84,66 +84,68 @@ function playAgain() {
 </script>
 
 <template>
-  <main class="page" px-5 py-8 flex min-h-screen justify-center>
-    <div max-w-md w-full flex="~ col">
-      <header mb-6 text-center>
-        <div text-sm tracking-widest font-extrabold text="[#ffd166]">
-          FUTURE WALL
-        </div>
-        <div text-xs mt-1 text="white/60">
-          วัยรุ่นมีของ Startup Season 6
-        </div>
-      </header>
+  <div class="page dot-pattern">
+    <AppHeader />
 
-      <section v-if="step === 'intro'" flex="~ col 1 items-center justify-center" text-center gap-6>
-        <div class="goose-bob" w-40>
-          <GooseImg type="rocket" />
-        </div>
-        <div>
-          <h1 text-3xl font-extrabold>
-            อนาคตของคุณ<br>คือห่านตัวไหน?
+    <main class="content">
+      <section v-if="step === 'intro'" flex="~ col" gap-6>
+        <div flex="~ col" gap-3 items-start>
+          <span class="neo-pill">NEW: ค้นหาห่านประจำตัวคุณ</span>
+          <h1 class="hero-title">
+            อนาคตของคุณ<br>คือ<span class="neo-outline-text">ห่านตัวไหน?</span>
           </h1>
-          <p text-sm mt-2 text="white/70">
+          <p text-base>
             ตอบ {{ questions.length }} ข้อ ใช้เวลาไม่ถึง 2 นาที
           </p>
         </div>
-        <form flex="~ col" gap-3 w-full @submit.prevent="start">
-          <input
-            v-model="nickname"
-            class="nickname-input"
-            type="text"
-            placeholder="ใส่ชื่อเล่นของคุณ"
-            autocomplete="off"
-            :maxlength="MAX_NICKNAME_LENGTH"
-          >
-          <p v-if="nameError" text-sm text="[#ff8fa3]">
-            {{ nameError }}
-          </p>
-          <ButtonPrimary type="submit">
-            เริ่มเลย
-          </ButtonPrimary>
-        </form>
-        <p text-xs leading-relaxed text="white/50">
-          เราเก็บเฉพาะชื่อเล่นและคำตอบของคุณ<br>ไม่เก็บรูปหรือข้อมูลติดต่อ
+
+        <div class="neo-card" p-5 flex="~ col" gap-5>
+          <div class="neo-panel-dark goose-box">
+            <div class="goose-bob" w-52>
+              <GooseImg type="rocket" />
+            </div>
+          </div>
+          <form flex="~ col" gap-4 @submit.prevent="start">
+            <input
+              v-model="nickname"
+              class="nickname-input"
+              type="text"
+              placeholder="ใส่ชื่อเล่นของคุณ"
+              autocomplete="off"
+              :maxlength="MAX_NICKNAME_LENGTH"
+            >
+            <p v-if="nameError" class="neo-pill" self-start>
+              {{ nameError }}
+            </p>
+            <ButtonPrimary type="submit">
+              เริ่มเลย
+            </ButtonPrimary>
+          </form>
+        </div>
+
+        <p text-xs leading-relaxed>
+          เราเก็บเฉพาะชื่อเล่นและคำตอบของคุณ ไม่เก็บรูปหรือข้อมูลติดต่อ
         </p>
       </section>
 
-      <section v-else-if="step === 'quiz'" flex="~ col 1" gap-6>
-        <div>
-          <div text-xs mb-2 flex justify-between text="white/60">
-            <span>ข้อ {{ currentIndex + 1 }} / {{ questions.length }}</span>
-            <span>{{ nickname.trim() }}</span>
+      <section v-else-if="step === 'quiz'" flex="~ col" gap-5>
+        <div flex="~ col" gap-3>
+          <div flex items-center justify-between>
+            <span class="neo-pill">ข้อ {{ currentIndex + 1 }} / {{ questions.length }}</span>
+            <span class="neo-pill name-pill">{{ nickname.trim() }}</span>
           </div>
-          <div rounded-full h-2 overflow-hidden bg="white/15">
-            <div class="progress-fill" rounded-full h-full :style="{ width: `${progressPercent}%` }" />
+          <div class="progress-track">
+            <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
           </div>
         </div>
 
-        <h2 :key="currentIndex" class="fade-in" text-2xl leading-snug font-extrabold>
-          {{ question.text }}
-        </h2>
+        <div class="neo-card" p-5>
+          <h2 :key="currentIndex" class="fade-in question-title">
+            {{ question.text }}
+          </h2>
+        </div>
 
-        <div :key="`options-${currentIndex}`" class="fade-in" flex="~ col" gap-3>
+        <div :key="`options-${currentIndex}`" class="fade-in" flex="~ col" gap-4>
           <button
             v-for="(option, optionIndex) in question.options"
             :key="optionIndex"
@@ -156,111 +158,171 @@ function playAgain() {
         </div>
       </section>
 
-      <section v-else-if="step === 'calculating'" flex="~ col 1 items-center justify-center" text-center gap-6>
+      <section v-else-if="step === 'calculating'" class="neo-card" flex="~ col items-center" p-8 text-center gap-5>
         <div class="goose-wiggle" text-6xl>
           🪿
         </div>
-        <p text-lg font-bold>
+        <p class="calculating-text">
           กำลังค้นหาห่านของ {{ nickname.trim() }}…
         </p>
       </section>
 
-      <section v-else-if="me && avatar" flex="~ col 1 items-center justify-center" text-center gap-5>
-        <p text-sm text="white/70">
-          ผลของ <span text-white font-bold>{{ me.nickname }}</span>
-        </p>
-        <div class="goose-pop" w-64 relative>
-          <div class="goose-glow" :style="{ background: `${avatar.color}88` }" />
-          <GooseImg :type="me.avatarType" />
+      <section v-else-if="me && avatar" flex="~ col" gap-5>
+        <span class="neo-pill" self-start>ผลของ {{ me.nickname }}</span>
+        <div class="neo-card goose-pop" p-5 flex="~ col" gap-5>
+          <div class="neo-panel-dark goose-box">
+            <div w-64>
+              <GooseImg :type="me.avatarType" />
+            </div>
+          </div>
+          <div>
+            <h2 class="result-title">
+              {{ avatar.title }}
+            </h2>
+            <p text-base mt-2>
+              {{ avatar.blurb }}
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 text-3xl font-extrabold :style="{ color: avatar.color }">
-            {{ avatar.title }}
-          </h2>
-          <p text-base mt-2 text="white/80">
-            {{ avatar.blurb }}
-          </p>
-        </div>
-        <div flex="~ col" mt-2 gap-3 w-full>
+        <div flex="~ col" gap-4>
           <ButtonPrimary @click="send">
             ส่งห่านของฉันไปที่เมือง 🏙️
           </ButtonPrimary>
-          <button text-sm py-2 underline text="white/60" @click="playAgain">
+          <button class="text-link" @click="playAgain">
             เล่นใหม่
           </button>
         </div>
       </section>
-    </div>
-  </main>
+    </main>
+  </div>
 </template>
 
 <style scoped>
 .page {
-  background: linear-gradient(to bottom, #12132b, #2a1f5c, #12132b);
+  min-height: 100vh;
+}
+
+.content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: 2.5rem;
+  line-height: 1.15;
+}
+
+.goose-box {
+  display: grid;
+  place-items: center;
+  padding: 1rem 0;
 }
 
 .nickname-input {
-  width: 100%;
   box-sizing: border-box;
+  width: 100%;
   padding: 1rem 1.25rem;
-  border: 0;
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 0.1);
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.2);
-  color: #fff;
+  border: var(--fw-border);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: var(--fw-shadow-sm);
+  color: #000;
   font: inherit;
   font-size: 1.125rem;
   text-align: center;
   outline: none;
-  transition: box-shadow 0.2s;
+  transition: all 0.2s var(--fw-push-ease);
 }
 
 .nickname-input::placeholder {
-  color: rgb(255 255 255 / 0.4);
+  color: rgb(0 0 0 / 0.45);
 }
 
 .nickname-input:focus {
-  box-shadow: inset 0 0 0 2px #ffd166;
+  background: var(--fw-yellow);
+  box-shadow: 0 0 0 0 #000;
+  transform: translate(4px, 4px);
+}
+
+.name-pill {
+  background: var(--fw-sage);
+}
+
+.progress-track {
+  height: 1.25rem;
+  overflow: hidden;
+  border: var(--fw-border);
+  border-radius: 9999px;
+  background: #fff;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--fw-charcoal);
+  transition: width 0.3s;
+}
+
+.question-title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.3;
 }
 
 .option {
   padding: 1rem 1.25rem;
-  border: 0;
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 0.1);
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.15);
-  color: #fff;
+  border: var(--fw-border);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: var(--fw-shadow-sm);
+  color: #000;
   font: inherit;
   font-size: 1rem;
+  font-weight: 700;
   text-align: left;
   cursor: pointer;
-  transition:
-    transform 0.15s,
-    background 0.15s;
+  transition: all 0.2s var(--fw-push-ease);
 }
 
+.option:hover,
 .option:active {
-  transform: scale(0.98);
+  box-shadow: 0 0 0 0 #000;
+  transform: translate(4px, 4px);
 }
 
 .option-picked {
-  background: #ffd166;
-  box-shadow: inset 0 0 0 2px #ffd166;
-  color: #12132b;
+  background: var(--fw-charcoal);
+  box-shadow: 0 0 0 0 #000;
+  color: #fff;
+  transform: translate(4px, 4px);
+}
+
+.calculating-text {
+  margin: 0;
+  font-family: var(--fw-font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.result-title {
+  margin: 0;
+  font-size: 1.875rem;
+  line-height: 1.2;
+}
+
+.text-link {
+  padding: 0.5rem;
+  border: 0;
+  background: none;
+  color: #000;
+  font: inherit;
+  font-size: 0.95rem;
   font-weight: 700;
-}
-
-.progress-fill {
-  background: #ffd166;
-  transition: width 0.3s;
-}
-
-.goose-glow {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: 9999px;
-  filter: blur(48px);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .goose-bob {

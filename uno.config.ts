@@ -11,6 +11,15 @@ import {
 } from 'unocss'
 
 export default defineConfig({
+  theme: {
+    colors: {
+      fw: {
+        yellow: '#ffe17c',
+        charcoal: '#171e19',
+        sage: '#b7c6c2',
+      },
+    },
+  },
   shortcuts: [
     ['btn', 'px-4 py-1 rounded inline-block bg-teal-600 text-white cursor-pointer hover:bg-teal-700 disabled:cursor-default disabled:bg-gray-600 disabled:opacity-50'],
     ['icon-btn', 'inline-block cursor-pointer select-none opacity-75 transition duration-200 ease-in-out hover:opacity-100 hover:text-teal-600'],
@@ -24,7 +33,10 @@ export default defineConfig({
     presetTypography(),
     presetWebFonts({
       fonts: {
-        sans: 'Noto Sans Thai',
+        sans: [
+          { name: 'Satoshi', weights: ['500', '700'], provider: 'fontshare' },
+          { name: 'Noto Sans Thai', weights: ['400', '500', '700', '800'], provider: 'google' },
+        ],
         mono: 'DM Mono',
       },
       processors: createLocalFontProcessor(),

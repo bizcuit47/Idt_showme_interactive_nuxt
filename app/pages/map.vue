@@ -36,13 +36,14 @@ function playAgain() {
       <div v-if="me" class="map-stage" :style="stageStyle">
         <MapScene />
 
-        <header pt-20 text-center inset-x-0 top-0 absolute>
-          <div class="map-title">
-            FUTURE WALL
+        <header class="map-header">
+          <div class="map-logo">
+            <span class="map-logo-icon">
+              <span i-carbon-flash />
+            </span>
+            <span class="map-title">FUTURE WALL</span>
           </div>
-          <div class="map-subtitle">
-            วัยรุ่นมีของ Startup Season 6
-          </div>
+          <span class="map-pill">Season 6</span>
         </header>
 
         <MapWalker
@@ -68,9 +69,9 @@ function playAgain() {
         </button>
       </div>
 
-      <div v-else flex="~ col items-center justify-center" text-white px-6 text-center gap-4 min-h-screen>
+      <div v-else class="dot-pattern" flex="~ col items-center justify-center" px-6 text-center gap-4 min-h-screen>
         <p>ยังไม่มีข้อมูลผู้เล่น</p>
-        <NuxtLink to="/" font-bold px-6 py-2 rounded-full bg="[#ffd166]" text="[#12132b]">
+        <NuxtLink to="/" class="neo-pill">
           ไปตอบคำถามก่อน
         </NuxtLink>
       </div>
@@ -83,7 +84,7 @@ function playAgain() {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #12132b;
+  background: var(--fw-charcoal);
   touch-action: none;
   user-select: none;
 }
@@ -96,32 +97,75 @@ function playAgain() {
   transform-origin: center;
 }
 
-.map-title {
-  color: #ffd166;
-  font-size: 72px;
-  font-weight: 800;
-  letter-spacing: 0.3em;
+.map-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 9998;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 200px;
+  padding: 0 60px;
+  border-bottom: 6px solid #000;
+  background: var(--fw-yellow);
 }
 
-.map-subtitle {
-  margin-top: 8px;
-  color: rgb(255 255 255 / 0.7);
-  font-size: 34px;
+.map-logo {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.map-logo-icon {
+  display: grid;
+  place-items: center;
+  width: 110px;
+  height: 110px;
+  background: #000;
+  color: var(--fw-yellow);
+  font-size: 64px;
+}
+
+.map-title {
+  font-family: var(--fw-font-heading);
+  font-size: 76px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.map-pill {
+  padding: 12px 36px;
+  border: 6px solid #000;
+  border-radius: 9999px;
+  background: #fff;
+  font-family: var(--fw-font-heading);
+  font-size: 38px;
+  font-weight: 700;
 }
 
 .map-back {
   position: absolute;
   left: 50%;
-  bottom: 40px;
+  bottom: 50px;
   z-index: 9999;
-  padding: 18px 48px;
-  border: 0;
-  border-radius: 9999px;
-  background: rgb(18 19 43 / 0.7);
+  padding: 24px 64px;
+  border: 6px solid #000;
+  border-radius: 36px;
+  background: #000;
+  box-shadow: 24px 24px 0 0 #000;
   color: #fff;
-  font: inherit;
-  font-size: 32px;
+  font-family: var(--fw-font-heading);
+  font-size: 44px;
+  font-weight: 800;
   transform: translateX(-50%);
+  transition: all 0.2s var(--fw-push-ease);
   cursor: pointer;
+}
+
+.map-back:hover,
+.map-back:active {
+  box-shadow: 12px 12px 0 0 #000;
+  transform: translate(calc(-50% + 12px), 12px);
 }
 </style>
