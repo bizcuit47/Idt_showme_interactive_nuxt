@@ -1,7 +1,6 @@
 import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import MapQr from '~/components/Map/MapQr.vue'
 import MapWalker from '~/components/Map/MapWalker.vue'
 import MapPage from '~/pages/map.vue'
 
@@ -114,32 +113,23 @@ describe('map page', () => {
   })
 
   describe('kiosk mode', () => {
-    it('shows the home button and no QR code on a normal visit', async () => {
+    it('shows the home button on a normal visit', async () => {
       const wrapper = await mountPage('/map')
 
       expect(wrapper.find('button.map-back').exists()).toBe(true)
-      expect(wrapper.findComponent(MapQr).exists()).toBe(false)
     })
 
-    it('hides the home button and shows the QR code with ?kiosk=1', async () => {
+    it('hides the home button with ?kiosk=1', async () => {
       const wrapper = await mountPage('/map?kiosk=1')
 
       expect(wrapper.find('button.map-back').exists()).toBe(false)
-      expect(wrapper.findComponent(MapQr).exists()).toBe(true)
     })
 
-    it('points the QR code at the quiz page of this site', async () => {
+    it('still shows the ducks with ?kiosk=1', async () => {
+      feed.ducks = [duck(1), duck(2)]
       const wrapper = await mountPage('/map?kiosk=1')
 
-      expect(wrapper.findComponent(MapQr).props('url')).toBe(`${window.location.origin}/`)
-    })
-
-    it('draws the QR code and tells people to scan it', async () => {
-      const wrapper = await mountPage('/map?kiosk=1')
-      const qr = wrapper.findComponent(MapQr)
-
-      expect(qr.find('svg path').attributes('d')).toMatch(/^M/)
-      expect(qr.text()).toContain('สแกน')
+      expect(wrapper.findAllComponents(MapWalker)).toHaveLength(2)
     })
 
     it('does not highlight a duck on the kiosk even when this browser played', async () => {
@@ -155,7 +145,6 @@ describe('map page', () => {
       const wrapper = await mountPage('/map?kiosk=0')
 
       expect(wrapper.find('button.map-back').exists()).toBe(true)
-      expect(wrapper.findComponent(MapQr).exists()).toBe(false)
     })
   })
 })
