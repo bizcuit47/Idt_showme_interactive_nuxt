@@ -7,12 +7,20 @@ export interface AvatarImages {
   prop?: string
 }
 
+export interface AvatarFraming {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface AvatarDef {
   id: AvatarId
   title: string
   blurb: string
   color: string
   images?: AvatarImages
+  framing?: AvatarFraming
 }
 
 export interface QuestionOption {

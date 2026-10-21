@@ -1,6 +1,6 @@
 import type { AvatarDef } from '~/types'
 
-import { avatarImageUrl } from '~/utils/goose'
+import { avatarImageUrl, characterDrawRect } from '~/utils/goose'
 
 export const cardWidth = 1080
 export const cardHeight = 1920
@@ -198,14 +198,20 @@ function drawHeader(ctx: CanvasRenderingContext2D) {
 async function drawAvatar(ctx: CanvasRenderingContext2D, avatar: AvatarDef) {
   const src = avatarImageUrl(avatar, 'stand')
   const source = videoPattern.test(src) ? withoutBlackBackground(await loadVideoFrame(src)) : await loadImage(src)
-  const naturalWidth = source.width
-  const naturalHeight = source.height
-  const boxWidth = 780
-  const boxHeight = 660
-  const ratio = (naturalWidth || 1) / (naturalHeight || 1)
-  const width = Math.min(boxWidth, boxHeight * ratio)
+  const boxX = 110
+  const boxY = 370
+  const box = { width: 860, height: 680 }
+
+  if (avatar.framing) {
+    const rect = characterDrawRect(avatar.framing, { width: source.width, height: source.height }, box)
+    ctx.drawImage(source, rect.sx, rect.sy, rect.sw, rect.sh, boxX + rect.dx, boxY + rect.dy, rect.dw, rect.dh)
+    return
+  }
+
+  const ratio = (source.width || 1) / (source.height || 1)
+  const width = Math.min(780, 660 * ratio)
   const height = width / ratio
-  ctx.drawImage(source, centerX - width / 2, 400 + (boxHeight - height) / 2, width, height)
+  ctx.drawImage(source, centerX - width / 2, 400 + (660 - height) / 2, width, height)
 }
 
 function drawPanel(ctx: CanvasRenderingContext2D) {
