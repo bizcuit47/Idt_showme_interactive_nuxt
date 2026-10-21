@@ -21,6 +21,7 @@ export interface AvatarDef {
   color: string
   images?: AvatarImages
   framing?: AvatarFraming
+  footOffsetX?: number
 }
 
 export interface QuestionOption {

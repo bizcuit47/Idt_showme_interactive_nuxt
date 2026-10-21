@@ -7,16 +7,38 @@ const stageWidth = 1080
 const stageHeight = 1920
 const demoNpcCount = 4
 const demoNames = ['น้องส้ม', 'ไอติม', 'บีม', 'ใบเตย', 'เจ', 'มายด์']
-const walkBounds: WalkBounds = { minX: 140, maxX: 940, minY: 1080, maxY: 1740 }
+const walkMarginX = 140
+const walkMaxY = 1740
+const walkMinY = 1250
+const walkHeadroom = 280
+const walkMinDepth = 120
+const backOffset = 50
 
 const me = useMe()
 const { width, height } = useWindowSize({ initialWidth: stageWidth, initialHeight: stageHeight })
 
-const stageScale = computed(() => Math.min(width.value / stageWidth, height.value / stageHeight))
+const stageScale = computed(() => Math.max(width.value / stageWidth, height.value / stageHeight))
+const visibleWidth = computed(() => Math.min(stageWidth, width.value / stageScale.value))
+const visibleHeight = computed(() => Math.min(stageHeight, height.value / stageScale.value))
+const visibleLeft = computed(() => (stageWidth - visibleWidth.value) / 2)
+const visibleTop = computed(() => stageHeight - visibleHeight.value)
+
+const walkBounds = computed<WalkBounds>(() => {
+  return {
+    minX: visibleLeft.value + walkMarginX,
+    maxX: stageWidth - visibleLeft.value - walkMarginX,
+    minY: Math.min(Math.max(walkMinY, visibleTop.value + walkHeadroom), walkMaxY - walkMinDepth),
+    maxY: walkMaxY,
+  }
+})
 const stageStyle = computed(() => ({
   width: `${stageWidth}px`,
   height: `${stageHeight}px`,
-  transform: `translate(-50%, -50%) scale(${stageScale.value})`,
+  transform: `translateX(-50%) scale(${stageScale.value})`,
+}))
+const backStyle = computed(() => ({
+  right: `${visibleLeft.value + backOffset}px`,
+  bottom: `${backOffset}px`,
 }))
 
 const npcs = Array.from({ length: demoNpcCount }, (_, index) => ({
@@ -36,16 +58,6 @@ function playAgain() {
       <div v-if="me" class="map-stage" :style="stageStyle">
         <img class="map-scene" src="/map-background.png" alt="">
 
-        <header class="map-header">
-          <div class="map-logo">
-            <span class="map-logo-icon">
-              <span i-carbon-flash />
-            </span>
-            <span class="map-title">FUTURE WALL</span>
-          </div>
-          <span class="map-pill">Season 6</span>
-        </header>
-
         <MapWalker
           v-for="npc in npcs"
           :key="npc.id"
@@ -59,13 +71,13 @@ function playAgain() {
           :type="me.avatarType"
           :nickname="me.nickname"
           :bounds="walkBounds"
-          :drop-delay-ms="700"
-          is-dropping
+          :enter-delay-ms="700"
+          is-entering
           is-self
         />
 
-        <button class="map-back" @click="playAgain">
-          เล่นอีกครั้ง
+        <button class="map-back" :style="backStyle" aria-label="เล่นอีกครั้ง" @click="playAgain">
+          <img src="/home-icon.png" alt="">
         </button>
       </div>
 
@@ -92,9 +104,9 @@ function playAgain() {
 .map-stage {
   position: absolute;
   left: 50%;
-  top: 50%;
+  bottom: 0;
   overflow: hidden;
-  transform-origin: center;
+  transform-origin: 50% 100%;
 }
 
 .map-scene {
@@ -105,75 +117,27 @@ function playAgain() {
   object-fit: cover;
 }
 
-.map-header {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 9998;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 200px;
-  padding: 0 60px;
-  border-bottom: 6px solid #000;
-  background: var(--fw-yellow);
-}
-
-.map-logo {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-}
-
-.map-logo-icon {
-  display: grid;
-  place-items: center;
-  width: 110px;
-  height: 110px;
-  background: #000;
-  color: var(--fw-yellow);
-  font-size: 64px;
-}
-
-.map-title {
-  font-family: var(--fw-font-heading);
-  font-size: 76px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.map-pill {
-  padding: 12px 36px;
-  border: 6px solid #000;
-  border-radius: 9999px;
-  background: #fff;
-  font-family: var(--fw-font-heading);
-  font-size: 38px;
-  font-weight: 700;
-}
-
 .map-back {
   position: absolute;
-  left: 50%;
-  bottom: 50px;
   z-index: 9999;
-  padding: 24px 64px;
-  border: 6px solid #000;
-  border-radius: 36px;
-  background: #000;
-  box-shadow: 24px 24px 0 0 #000;
-  color: #fff;
-  font-family: var(--fw-font-heading);
-  font-size: 44px;
-  font-weight: 800;
-  transform: translateX(-50%);
-  transition: all 0.2s var(--fw-push-ease);
+  width: 150px;
+  height: 150px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  transition: transform 0.2s var(--fw-push-ease);
   cursor: pointer;
+}
+
+.map-back img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .map-back:hover,
 .map-back:active {
-  box-shadow: 12px 12px 0 0 #000;
-  transform: translate(calc(-50% + 12px), 12px);
+  transform: scale(0.92);
 }
 </style>

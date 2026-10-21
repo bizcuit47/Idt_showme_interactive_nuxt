@@ -5,25 +5,24 @@ import type { CharacterPainter, GoosePose } from '~/utils/goose'
 import { getAvatar } from '~/data/avatars'
 import { avatarImageUrl, characterBottomRatio, createCharacterPainter } from '~/utils/goose'
 
-type Phase = 'waiting' | 'dropping' | 'resting' | 'walking'
+type Phase = 'waiting' | 'resting' | 'walking'
 
-const { type, nickname, bounds, isDropping = false, isSelf = false, dropDelayMs = 0 } = defineProps<{
+const { type, nickname, bounds, isEntering = false, isSelf = false, enterDelayMs = 0 } = defineProps<{
   type: AvatarId
   nickname: string
   bounds: WalkBounds
-  isDropping?: boolean
+  isEntering?: boolean
   isSelf?: boolean
-  dropDelayMs?: number
+  enterDelayMs?: number
 }>()
 
 const gooseSize = 200
 const characterHeightRatio = 0.8
 const depthScaleMin = 1
 const depthScaleMax = 1
-const nameGap = 46
-const gravity = 3200
-const bounceDamping = 0.42
-const minBounceSpeed = 260
+const nameGap = 70
+const fadeSeconds = 0.8
+const maxBounce = 10
 const walkSpeed = 120
 const restChance = 0.25
 const minTravel = 140
@@ -48,14 +47,13 @@ const poseUrls = computed(() => {
   } satisfies Record<GoosePose, string>
 })
 
-let phase: Phase = isDropping ? 'waiting' : 'resting'
-let phaseClock = isDropping ? dropDelayMs / 1000 : randomBetween(0.2, 2)
+let phase: Phase = isEntering ? 'waiting' : 'resting'
+let phaseClock = isEntering ? enterDelayMs / 1000 : randomBetween(0.2, 2)
 let x = randomBetween(bounds.minX, bounds.maxX)
 let y = randomBetween(bounds.minY, bounds.maxY)
 let targetX = x
 let targetY = y
-let dropOffset = isDropping ? -(y + gooseSize * 2) : 0
-let dropVelocity = 0
+let fade = isEntering ? 0 : 1
 let facing = 1
 let elapsed = 0
 
@@ -91,20 +89,6 @@ function chooseNextMove() {
   phase = 'walking'
 }
 
-function updateDrop(deltaSeconds: number) {
-  dropVelocity += gravity * deltaSeconds
-  dropOffset += dropVelocity * deltaSeconds
-  if (dropOffset < 0)
-    return
-  dropOffset = 0
-  if (dropVelocity > minBounceSpeed) {
-    dropVelocity = -dropVelocity * bounceDamping
-    return
-  }
-  dropVelocity = 0
-  startResting(randomBetween(0.8, 1.6))
-}
-
 function updateWalk(deltaSeconds: number) {
   const dx = targetX - x
   const dy = targetY - y
@@ -131,10 +115,7 @@ function update(deltaSeconds: number) {
   if (phase === 'waiting') {
     phaseClock -= deltaSeconds
     if (phaseClock <= 0)
-      phase = 'dropping'
-  }
-  else if (phase === 'dropping') {
-    updateDrop(deltaSeconds)
+      startResting(randomBetween(0.8, 1.6))
   }
   else if (phase === 'resting') {
     phaseClock -= deltaSeconds
@@ -144,6 +125,9 @@ function update(deltaSeconds: number) {
   else {
     updateWalk(deltaSeconds)
   }
+
+  if (phase !== 'waiting')
+    fade = Math.min(1, fade + deltaSeconds / fadeSeconds)
 
   render()
 }
@@ -157,26 +141,49 @@ function render() {
     return
 
   const isWalking = phase === 'walking'
-  const bounce = isWalking ? Math.abs(Math.sin(elapsed * 10)) * 10 : 0
+  const bounce = isWalking ? Math.abs(Math.sin(elapsed * 10)) * maxBounce : 0
   const sway = isWalking ? Math.sin(elapsed * 10) * 3 : 0
-  const airborne = Math.min(1, -dropOffset / 600)
 
   root.style.transform = `translate3d(${x - gooseSize / 2}px, ${y - gooseSize}px, 0) scale(${depthScale()})`
   root.style.zIndex = String(Math.round(y))
-  root.style.opacity = phase === 'waiting' ? '0' : '1'
-  shadow.style.opacity = String(0.35 * (1 - airborne))
-  shadow.style.transform = `translateX(-50%) scale(${1 - airborne * 0.5})`
-  flip.style.transform = `translateY(${dropOffset - bounce}px) rotate(${sway}deg) scaleX(${facing})`
+  root.style.opacity = String(fade)
+  const lift = bounce / maxBounce
+  const footShift = facing * (getAvatar(type).footOffsetX ?? 0) * gooseSize
+  shadow.style.opacity = String(0.35 * (1 - lift * 0.3))
+  shadow.style.transform = `translateX(calc(-50% + ${footShift}px)) scale(${1 - lift * 0.2})`
+  flip.style.transform = `translateY(${-bounce}px) rotate(${sway}deg) scaleX(${facing})`
   drawFrame(image)
 }
 
 let drawnTime = -1
+let hasNewFrame = false
+let isFrameWatched = false
 let painter: CharacterPainter | null = null
 
-function drawFrame(video: HTMLVideoElement) {
-  if (!painter || video.readyState < 2 || video.currentTime === drawnTime)
+function watchVideoFrames(video: HTMLVideoElement) {
+  if (typeof video.requestVideoFrameCallback !== 'function')
     return
-  drawnTime = video.currentTime
+  isFrameWatched = true
+  const markFrame = () => {
+    hasNewFrame = true
+    video.requestVideoFrameCallback(markFrame)
+  }
+  video.requestVideoFrameCallback(markFrame)
+}
+
+function drawFrame(video: HTMLVideoElement) {
+  if (!painter || video.readyState < 2)
+    return
+  if (isFrameWatched) {
+    if (!hasNewFrame)
+      return
+    hasNewFrame = false
+  }
+  else {
+    if (video.currentTime === drawnTime)
+      return
+    drawnTime = video.currentTime
+  }
   painter.draw(video)
 }
 
@@ -189,6 +196,8 @@ onMounted(() => {
     canvas.height = gooseSize
     painter = createCharacterPainter(canvas, getAvatar(type).framing, characterHeightRatio)
   }
+  if (imageElement.value)
+    watchVideoFrames(imageElement.value)
   render()
 })
 </script>

@@ -45,7 +45,7 @@ describe('map page', () => {
     expect(self).toHaveLength(1)
     expect(self[0]!.props('nickname')).toBe('มะลิ')
     expect(self[0]!.props('type')).toBe('star')
-    expect(self[0]!.props('isDropping')).toBe(true)
+    expect(self[0]!.props('isEntering')).toBe(true)
   })
 
   it('shows the nickname of every goose', async () => {
