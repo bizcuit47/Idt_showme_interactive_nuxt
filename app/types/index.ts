@@ -21,6 +21,7 @@ export interface AvatarDef {
   color: string
   images?: AvatarImages
   framing?: AvatarFraming
+  footOffsetX?: number
 }
 
 export interface QuestionOption {
@@ -39,6 +40,13 @@ export interface Player {
   avatarType: AvatarId
   answers: number[]
   createdAt: string
+}
+
+export interface ApiDuck {
+  id: string
+  nickname: string
+  type: AvatarId
+  createdAt: number
 }
 
 export interface WalkBounds {

@@ -4,6 +4,7 @@ import { getAvatar } from '~/data/avatars'
 import { questions } from '~/data/questions'
 import { nicknameErrorText, validateNickname } from '~/utils/nickname'
 import { computeAvatar } from '~/utils/scoring'
+import { classifySendError, sendDuck, sendDuckErrorText } from '~/utils/sendDuck'
 
 type Step = 'intro' | 'quiz' | 'calculating' | 'result'
 
@@ -18,6 +19,8 @@ const nameError = ref('')
 const currentIndex = ref(0)
 const answers = ref<number[]>([])
 const pickedIndex = ref<number>()
+const isSending = ref(false)
+const sendError = ref('')
 
 const question = computed(() => questions[currentIndex.value]!)
 const progressPercent = computed(() => Math.round((currentIndex.value / questions.length) * 100))
@@ -55,10 +58,26 @@ function goNext() {
     finish()
 }
 
+function createPlayerId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      return crypto.randomUUID()
+  }
+  catch {
+    // Phones opened over http cannot use randomUUID.
+  }
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80
+  const hex = [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 function finish() {
   const name = nickname.value.trim()
   me.value = {
-    id: crypto.randomUUID(),
+    id: createPlayerId(),
     nickname: name,
     avatarType: computeAvatar(answers.value, name),
     answers: [...answers.value],
@@ -72,7 +91,22 @@ function showResult() {
   step.value = 'result'
 }
 
-function send() {
+async function send() {
+  if (!me.value || isSending.value)
+    return
+  isSending.value = true
+  sendError.value = ''
+  try {
+    await sendDuck(me.value)
+    navigateTo('/share?sent=1')
+  }
+  catch (error) {
+    sendError.value = sendDuckErrorText[classifySendError(error)]
+  }
+  isSending.value = false
+}
+
+function skipSending() {
   navigateTo('/share')
 }
 
@@ -89,12 +123,12 @@ function playAgain() {
 
     <main class="content">
       <section v-if="step === 'intro'" flex="~ col" gap-6>
-        <span class="neo-pill" self-start>NEW: ค้นหาห่านประจำตัวคุณ</span>
+        <span class="neo-pill" self-start>NEW: ค้นหาเป็ดประจำตัวคุณ</span>
 
         <div class="neo-card" p-6 flex="~ col" gap-6>
           <div flex="~ col" gap-3>
             <h1 class="hero-title">
-              อนาคตของคุณ<br>คือ<span class="neo-outline-text">ห่านตัวไหน?</span>
+              อนาคตของคุณ<br>คือ<span class="neo-outline-text">เป็ดตัวไหน?</span>
             </h1>
             <p text-base>
               ตอบ {{ questions.length }} ข้อ ใช้เวลาไม่ถึง 2 นาที
@@ -158,7 +192,7 @@ function playAgain() {
           🪿
         </div>
         <p class="calculating-text">
-          กำลังค้นหาห่านของ {{ nickname.trim() }}…
+          กำลังค้นหาเป็ดของ {{ nickname.trim() }}…
         </p>
       </section>
 
@@ -180,9 +214,15 @@ function playAgain() {
           </div>
         </div>
         <div flex="~ col" gap-4>
-          <ButtonPrimary @click="send">
-            ส่งห่านของฉันไปที่เมือง 🏙️
+          <ButtonPrimary :is-disabled="isSending" @click="send">
+            {{ isSending ? 'กำลังส่งเป็ด…' : 'ส่งเป็ดของฉันไปที่เมือง 🏙️' }}
           </ButtonPrimary>
+          <p v-if="sendError" class="neo-pill" self-start>
+            {{ sendError }}
+          </p>
+          <button v-if="sendError" class="text-link" @click="skipSending">
+            ข้ามไปดูการ์ดก่อน
+          </button>
           <button class="text-link" @click="playAgain">
             เล่นใหม่
           </button>

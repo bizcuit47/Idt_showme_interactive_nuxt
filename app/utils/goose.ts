@@ -124,10 +124,28 @@ const characterFragmentShader = `
 precision mediump float;
 varying vec2 uv;
 uniform sampler2D image;
+uniform vec2 texel;
+
+float brightness(vec2 offset) {
+  vec4 sampleColor = texture2D(image, uv + offset);
+  return max(sampleColor.r, max(sampleColor.g, sampleColor.b));
+}
+
 void main() {
   vec4 color = texture2D(image, uv);
-  float brightness = max(color.r, max(color.g, color.b));
-  gl_FragColor = vec4(color.rgb, color.a * smoothstep(0.09, 0.25, brightness));
+  float level = max(color.r, max(color.g, color.b));
+  float dark = 1.0 - smoothstep(0.05, 0.16, level);
+  float near = 0.0;
+  near = max(near, brightness(vec2(texel.x, 0.0)));
+  near = max(near, brightness(vec2(-texel.x, 0.0)));
+  near = max(near, brightness(vec2(0.0, texel.y)));
+  near = max(near, brightness(vec2(0.0, -texel.y)));
+  near = max(near, brightness(vec2(texel.x * 2.0, 0.0)));
+  near = max(near, brightness(vec2(-texel.x * 2.0, 0.0)));
+  near = max(near, brightness(vec2(0.0, texel.y * 2.0)));
+  near = max(near, brightness(vec2(0.0, -texel.y * 2.0)));
+  float alpha = mix(1.0, smoothstep(0.2, 0.45, near), dark);
+  gl_FragColor = vec4(color.rgb, color.a * alpha);
 }
 `
 
@@ -140,7 +158,7 @@ export function createCharacterPainter(
   framing?: AvatarFraming,
   heightRatio = characterHeightRatio,
 ): CharacterPainter | null {
-  const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false })
+  const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: true })
   if (!gl)
     return null
 
@@ -202,7 +220,9 @@ export function createCharacterPainter(
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
   gl.enable(gl.BLEND)
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+  gl.clearColor(0, 0, 0, 0)
   gl.viewport(0, 0, canvas.width, canvas.height)
+  const texel = gl.getUniformLocation(program, 'texel')
 
   let isQuadReady = false
 
@@ -212,6 +232,7 @@ export function createCharacterPainter(
         return
       if (!isQuadReady) {
         uploadQuad(video)
+        gl.uniform2f(texel, 4 / video.videoWidth, 4 / video.videoHeight)
         isQuadReady = true
       }
       gl.clear(gl.COLOR_BUFFER_BIT)
@@ -222,6 +243,148 @@ export function createCharacterPainter(
   }
 }
 
+const backdropTolerance = 42
+
+function spreadAlongLine(
+  isSource: (index: number) => boolean,
+  mark: (index: number) => void,
+  start: number,
+  step: number,
+  length: number,
+  radius: number,
+) {
+  let run = 0
+  for (let offset = 0; offset < length; offset++) {
+    const index = start + offset * step
+    if (isSource(index))
+      run = radius + 1
+    if (run > 0) {
+      mark(index)
+      run--
+    }
+  }
+}
+
+function dilateCharacter(outside: Uint8Array, width: number, height: number, radius: number) {
+  const horizontal = new Uint8Array(width * height)
+  const keep = new Uint8Array(width * height)
+  const isInside = (index: number) => !outside[index]
+  const isHorizontal = (index: number) => horizontal[index] === 1
+  const markHorizontal = (index: number) => {
+    horizontal[index] = 1
+  }
+  const markKeep = (index: number) => {
+    keep[index] = 1
+  }
+
+  for (let y = 0; y < height; y++) {
+    spreadAlongLine(isInside, markHorizontal, y * width, 1, width, radius)
+    spreadAlongLine(isInside, markHorizontal, y * width + width - 1, -1, width, radius)
+  }
+  for (let x = 0; x < width; x++) {
+    spreadAlongLine(isHorizontal, markKeep, x, width, height, radius)
+    spreadAlongLine(isHorizontal, markKeep, (height - 1) * width + x, -width, height, radius)
+  }
+  return keep
+}
+
+interface BackdropFlood {
+  data: Uint8ClampedArray
+  width: number
+  count: number
+  color: [number, number, number]
+  outside: Uint8Array
+  stack: Int32Array
+  top: number
+}
+
+function findOpaquePixel(data: Uint8ClampedArray, count: number): number {
+  for (let index = 0; index < count; index++) {
+    if (data[index * 4 + 3]! > 200)
+      return index
+  }
+  return -1
+}
+
+function isBackdropPixel(flood: BackdropFlood, index: number): boolean {
+  const { data, color } = flood
+  const offset = index * 4
+  if (data[offset + 3]! < 16)
+    return true
+  return Math.abs(data[offset]! - color[0]) + Math.abs(data[offset + 1]! - color[1]) + Math.abs(data[offset + 2]! - color[2]) <= backdropTolerance
+}
+
+function pushBackdrop(flood: BackdropFlood, index: number) {
+  if (flood.outside[index] || !isBackdropPixel(flood, index))
+    return
+  flood.outside[index] = 1
+  flood.stack[flood.top++] = index
+}
+
+function seedBackdrop(flood: BackdropFlood, height: number) {
+  const { width, count, data } = flood
+  for (let x = 0; x < width; x++) {
+    pushBackdrop(flood, x)
+    pushBackdrop(flood, (height - 1) * width + x)
+  }
+  for (let y = 0; y < height; y++) {
+    pushBackdrop(flood, y * width)
+    pushBackdrop(flood, y * width + width - 1)
+  }
+  for (let index = 0; index < count; index++) {
+    if (data[index * 4 + 3]! < 16)
+      pushBackdrop(flood, index)
+  }
+}
+
+function spreadBackdrop(flood: BackdropFlood) {
+  const { width, count } = flood
+  while (flood.top > 0) {
+    const index = flood.stack[--flood.top]!
+    const x = index % width
+    if (x > 0)
+      pushBackdrop(flood, index - 1)
+    if (x < width - 1)
+      pushBackdrop(flood, index + 1)
+    if (index >= width)
+      pushBackdrop(flood, index - width)
+    if (index < count - width)
+      pushBackdrop(flood, index + width)
+  }
+}
+
+export function clearConnectedBackdrop(context: CanvasRenderingContext2D) {
+  const { width, height } = context.canvas
+  const pixels = context.getImageData(0, 0, width, height)
+  const data = pixels.data
+  const count = width * height
+  const sample = findOpaquePixel(data, count)
+  if (sample < 0)
+    return
+
+  const base = sample * 4
+  const flood: BackdropFlood = {
+    data,
+    width,
+    count,
+    color: [data[base]!, data[base + 1]!, data[base + 2]!],
+    outside: new Uint8Array(count),
+    stack: new Int32Array(count),
+    top: 0,
+  }
+  seedBackdrop(flood, height)
+  spreadBackdrop(flood)
+
+  const keep = dilateCharacter(flood.outside, width, height, Math.max(3, Math.round(width / 220)))
+  for (let index = 0; index < count; index++) {
+    if (!keep[index])
+      data[index * 4 + 3] = 0
+  }
+  context.putImageData(pixels, 0, 0)
+}
+
+const paintedTime = new WeakMap<HTMLVideoElement, number>()
+
 export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement, framing?: AvatarFraming) {
   if (video.readyState < 2 || !video.videoWidth)
     return
@@ -230,6 +393,9 @@ export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoE
     canvas.width = size
     canvas.height = size
   }
+  if (paintedTime.get(video) === video.currentTime)
+    return
+  paintedTime.set(video, video.currentTime)
   const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context)
     return
@@ -241,16 +407,7 @@ export function paintCharacterFrame(canvas: HTMLCanvasElement, video: HTMLVideoE
   else {
     context.drawImage(video, 0, 0, size, size)
   }
-  const pixels = context.getImageData(0, 0, size, size)
-  const data = pixels.data
-  for (let index = 0; index < data.length; index += 4) {
-    const brightness = Math.max(data[index]!, data[index + 1]!, data[index + 2]!)
-    if (brightness < 24)
-      data[index + 3] = 0
-    else if (brightness < 64)
-      data[index + 3] = Math.round(((brightness - 24) / 40) * data[index + 3]!)
-  }
-  context.putImageData(pixels, 0, 0)
+  clearConnectedBackdrop(context)
 }
 
 export function avatarImageUrl(avatar: AvatarDef, pose: GoosePose = 'walk'): string {

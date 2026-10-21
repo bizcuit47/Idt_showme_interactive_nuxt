@@ -3,6 +3,7 @@ import { getAvatar } from '~/data/avatars'
 import { renderCard } from '~/utils/card'
 
 const me = useMe()
+const route = useRoute()
 
 const cardBlob = shallowRef<Blob>()
 const cardUrl = ref('')
@@ -11,6 +12,7 @@ const isFailed = ref(false)
 const isCopySupported = ref(false)
 const statusMessage = ref('')
 
+const isSent = computed(() => route.query.sent === '1')
 const avatar = computed(() => me.value ? getAvatar(me.value.avatarType) : undefined)
 const fileName = computed(() => `future-wall-${me.value?.avatarType ?? 'card'}.png`)
 
@@ -109,6 +111,9 @@ onBeforeUnmount(() => {
         <p text-sm>
           บันทึกหรือแชร์ไปลงสตอรี่ได้เลย
         </p>
+        <p v-if="isSent && me" class="neo-pill sent-pill">
+          ส่งเป็ดขึ้นจอแล้ว มองหาชื่อ {{ me.nickname }} บนจอได้เลย
+        </p>
       </div>
 
       <div class="card-frame">
@@ -122,15 +127,17 @@ onBeforeUnmount(() => {
       </div>
 
       <div flex="~ col" gap-4>
-        <ButtonPrimary :is-disabled="!cardUrl" @click="download">
-          ดาวน์โหลดรูป
-        </ButtonPrimary>
-        <ButtonSecondary :is-disabled="!cardUrl" @click="share">
-          แชร์ไปแอปอื่น
-        </ButtonSecondary>
-        <ButtonSecondary v-if="isCopySupported" :is-disabled="!cardUrl" @click="copyImage">
-          คัดลอกรูป
-        </ButtonSecondary>
+        <div class="action-row">
+          <ButtonPrimary :is-disabled="!cardUrl" @click="download">
+            ดาวน์โหลดรูป
+          </ButtonPrimary>
+          <ButtonSecondary :is-disabled="!cardUrl" @click="share">
+            แชร์ไปแอปอื่น
+          </ButtonSecondary>
+          <ButtonSecondary v-if="isCopySupported" :is-disabled="!cardUrl" @click="copyImage">
+            คัดลอกรูป
+          </ButtonSecondary>
+        </div>
         <ButtonSecondary v-if="isFailed" @click="generate">
           ลองสร้างการ์ดอีกครั้ง
         </ButtonSecondary>
@@ -142,7 +149,7 @@ onBeforeUnmount(() => {
 
       <div flex="~ col" gap-1>
         <button class="link-button" @click="goToMap">
-          ดูห่านของฉันบนเมือง 🏙️
+          ดูเป็ดของฉันบนเมือง 🏙️
         </button>
         <button class="link-button" @click="goHome">
           กลับสู่หน้าหลัก
@@ -168,6 +175,12 @@ onBeforeUnmount(() => {
   padding: 1.5rem 1.25rem 3rem;
 }
 
+.sent-pill {
+  align-self: flex-start;
+  border-radius: 0.75rem;
+  line-height: 1.5;
+}
+
 .share-title {
   margin: 0;
   font-size: 2rem;
@@ -177,18 +190,30 @@ onBeforeUnmount(() => {
 .card-frame {
   align-self: center;
   width: min(100%, 280px);
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 1080 / 1520;
   overflow: hidden;
-  border: var(--fw-border);
-  border-radius: 1rem;
-  background: var(--fw-sage);
-  box-shadow: var(--fw-shadow-lg);
 }
 
 .card-image {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.action-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-row > button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.75rem 0.5rem;
+  box-shadow: var(--fw-shadow-sm);
+  font-size: 0.9rem;
+  line-height: 1.3;
 }
 
 .card-placeholder {
