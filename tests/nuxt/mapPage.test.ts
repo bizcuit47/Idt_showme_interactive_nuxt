@@ -142,6 +142,15 @@ describe('map page', () => {
       expect(qr.text()).toContain('สแกน')
     })
 
+    it('does not highlight a duck on the kiosk even when this browser played', async () => {
+      localStorage.setItem('fw:me', JSON.stringify(player))
+      feed.ducks = [duck(1), duck(2, { id: player.id, nickname: 'มะลิ', type: 'star' })]
+      const wrapper = await mountPage('/map?kiosk=1')
+
+      expect(wrapper.findAll('.map-walker-name')).toHaveLength(2)
+      expect(wrapper.findAll('.map-walker-name-self')).toHaveLength(0)
+    })
+
     it('treats any other kiosk value as a normal visit', async () => {
       const wrapper = await mountPage('/map?kiosk=0')
 

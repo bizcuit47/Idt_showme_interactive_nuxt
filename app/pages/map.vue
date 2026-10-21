@@ -54,7 +54,7 @@ useDuckFeed((duck) => {
     id: duck.id,
     nickname: duck.nickname,
     type: duck.type,
-    isSelf: duck.id === me.value?.id,
+    isSelf: !isKiosk.value && duck.id === me.value?.id,
     isEntering: true,
     enterDelayMs: 0,
   })
