@@ -98,7 +98,7 @@ async function send() {
   sendError.value = ''
   try {
     await sendDuck(me.value)
-    navigateTo('/share')
+    navigateTo('/share?sent=1')
   }
   catch (error) {
     sendError.value = sendDuckErrorText[classifySendError(error)]

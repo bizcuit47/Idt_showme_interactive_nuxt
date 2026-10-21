@@ -210,7 +210,7 @@ describe('quiz page', () => {
       const saved = JSON.parse(localStorage.getItem('fw:me')!)
 
       await sendButton(wrapper).trigger('click')
-      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share'))
+      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share?sent=1'))
 
       expect(sentDucks).toEqual([{ id: saved.id, nickname: 'มะลิ', type: saved.avatarType }])
     })
@@ -253,7 +253,7 @@ describe('quiz page', () => {
 
       await button.trigger('click')
       await button.trigger('click')
-      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share'))
+      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share?sent=1'))
 
       expect(sentDucks).toHaveLength(1)
     })

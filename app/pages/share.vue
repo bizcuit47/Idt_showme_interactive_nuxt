@@ -3,6 +3,7 @@ import { getAvatar } from '~/data/avatars'
 import { renderCard } from '~/utils/card'
 
 const me = useMe()
+const route = useRoute()
 
 const cardBlob = shallowRef<Blob>()
 const cardUrl = ref('')
@@ -11,6 +12,7 @@ const isFailed = ref(false)
 const isCopySupported = ref(false)
 const statusMessage = ref('')
 
+const isSent = computed(() => route.query.sent === '1')
 const avatar = computed(() => me.value ? getAvatar(me.value.avatarType) : undefined)
 const fileName = computed(() => `future-wall-${me.value?.avatarType ?? 'card'}.png`)
 
@@ -109,6 +111,9 @@ onBeforeUnmount(() => {
         <p text-sm>
           บันทึกหรือแชร์ไปลงสตอรี่ได้เลย
         </p>
+        <p v-if="isSent && me" class="neo-pill sent-pill">
+          ส่งเป็ดขึ้นจอแล้ว มองหาชื่อ {{ me.nickname }} บนจอได้เลย
+        </p>
       </div>
 
       <div class="card-frame">
@@ -168,6 +173,12 @@ onBeforeUnmount(() => {
   max-width: 28rem;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 3rem;
+}
+
+.sent-pill {
+  align-self: flex-start;
+  border-radius: 0.75rem;
+  line-height: 1.5;
 }
 
 .share-title {

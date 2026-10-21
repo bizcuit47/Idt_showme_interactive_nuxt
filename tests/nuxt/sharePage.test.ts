@@ -31,8 +31,8 @@ function findButton(wrapper: Awaited<ReturnType<typeof mountPage>>, text: string
   return wrapper.findAll('button').find(button => button.text().includes(text))
 }
 
-async function mountPage() {
-  const wrapper = await mountSuspended(SharePage)
+async function mountPage(route = '/share') {
+  const wrapper = await mountSuspended(SharePage, { route })
   await flushPromises()
   return wrapper
 }
@@ -53,6 +53,19 @@ describe('share page', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it('tells the visitor to look for their name on the screen after sending', async () => {
+    const wrapper = await mountPage('/share?sent=1')
+
+    expect(wrapper.find('.sent-pill').text()).toContain('มะลิ')
+    expect(wrapper.find('.sent-pill').text()).toContain('บนจอ')
+  })
+
+  it('does not claim the duck was sent when the visitor skipped sending', async () => {
+    const wrapper = await mountPage('/share')
+
+    expect(wrapper.find('.sent-pill').exists()).toBe(false)
   })
 
   it('sends the visitor home when there is no player', async () => {
