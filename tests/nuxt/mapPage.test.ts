@@ -219,6 +219,37 @@ describe('map page', () => {
       expect(instances[0]!.playCount).toBe(2)
     })
 
+    it('also starts after a finger lift, which is what a touch screen counts as a tap', async () => {
+      behavior.blockedPlays = 1
+      await mountPage('/map?kiosk=1')
+
+      window.dispatchEvent(new Event('pointerup'))
+      await flushPromises()
+
+      expect(instances[0]!.playCount).toBe(2)
+    })
+
+    it('starts after a key press when autoplay is blocked', async () => {
+      behavior.blockedPlays = 1
+      await mountPage('/map?kiosk=1')
+
+      window.dispatchEvent(new Event('keydown'))
+      await flushPromises()
+
+      expect(instances[0]!.playCount).toBe(2)
+    })
+
+    it('starts only once when several taps arrive together', async () => {
+      behavior.blockedPlays = 1
+      await mountPage('/map?kiosk=1')
+
+      window.dispatchEvent(new Event('pointerdown'))
+      window.dispatchEvent(new Event('pointerup'))
+      await flushPromises()
+
+      expect(instances[0]!.playCount).toBe(2)
+    })
+
     it('stops the music when the map is closed', async () => {
       const wrapper = await mountPage('/map')
 
