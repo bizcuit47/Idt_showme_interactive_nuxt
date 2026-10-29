@@ -45,8 +45,10 @@ const { ducks, addDuck, removeDuck } = useDuckField()
 
 useBackgroundMusic(SOUNDS.backgroundMusic)
 
-useDuckFeed((duck) => {
-  addDuck({
+const { play: playQuack } = useSound(SOUNDS.duckQuack)
+
+useDuckFeed((duck, isFirstLoad) => {
+  const isAdded = addDuck({
     id: duck.id,
     nickname: duck.nickname,
     type: duck.type,
@@ -54,6 +56,8 @@ useDuckFeed((duck) => {
     isEntering: true,
     enterDelayMs: 0,
   })
+  if (isAdded && !isFirstLoad)
+    playQuack()
 })
 
 function playAgain() {

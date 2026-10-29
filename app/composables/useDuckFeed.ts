@@ -6,9 +6,10 @@ interface DuckListResponse {
 
 export const duckPollMs = 3000
 
-export function useDuckFeed(onDuck: (duck: ApiDuck) => void) {
+export function useDuckFeed(onDuck: (duck: ApiDuck, isFirstLoad: boolean) => void) {
   let since = 0
   let isPolling = false
+  let hasLoaded = false
 
   async function poll() {
     if (isPolling)
@@ -17,9 +18,10 @@ export function useDuckFeed(onDuck: (duck: ApiDuck) => void) {
     try {
       const response = await $fetch<DuckListResponse>('/api/ducks', { query: since ? { since } : {} })
       for (const duck of response.ducks) {
-        onDuck(duck)
+        onDuck(duck, !hasLoaded)
         since = Math.max(since, duck.createdAt)
       }
+      hasLoaded = true
     }
     catch {
       return

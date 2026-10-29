@@ -67,4 +67,11 @@ describe('duck field', () => {
 
     expect(ducks.value).toHaveLength(1)
   })
+
+  it('tells whether the duck was added', () => {
+    const { addDuck } = useDuckField()
+
+    expect(addDuck(newDuck(0))).toBe(true)
+    expect(addDuck(newDuck(0))).toBe(false)
+  })
 })
