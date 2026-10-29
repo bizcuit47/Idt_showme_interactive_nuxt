@@ -258,4 +258,130 @@ describe('quiz page', () => {
       expect(sentDucks).toHaveLength(1)
     })
   })
+
+  describe('sounds', () => {
+    const played: string[] = []
+    const loadedSources: string[] = []
+    const behavior = { isBlocked: false }
+
+    class FakeAudio {
+      currentTime = 0
+      preload = ''
+      source: string
+
+      constructor(source: string) {
+        this.source = source
+        loadedSources.push(source)
+      }
+
+      play() {
+        played.push(this.source)
+        return behavior.isBlocked ? Promise.reject(new Error('blocked')) : Promise.resolve()
+      }
+    }
+
+    async function reachQuiz() {
+      const wrapper = await mountPage()
+      await typeNickname(wrapper, 'มะลิ')
+      return wrapper
+    }
+
+    async function reachResult() {
+      const wrapper = await reachQuiz()
+      await answerAll(wrapper)
+      await vi.advanceTimersByTimeAsync(2000)
+      await flushPromises()
+      played.length = 0
+      return wrapper
+    }
+
+    function sendButton(wrapper: Awaited<ReturnType<typeof mountPage>>) {
+      return wrapper.findAll('button').find(button => button.text().includes('ส่งเป็ดของฉันไปที่เมือง'))!
+    }
+
+    beforeEach(() => {
+      played.length = 0
+      loadedSources.length = 0
+      behavior.isBlocked = false
+      vi.stubGlobal('Audio', FakeAudio)
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('loads the button sound and the quack when the page opens', async () => {
+      await mountPage()
+
+      expect(loadedSources).toEqual(['/sounds/button-pressed.mp3', '/sounds/duck-quack.mp3'])
+    })
+
+    it('stays quiet until an answer is picked', async () => {
+      await reachQuiz()
+
+      expect(played).toEqual([])
+    })
+
+    it('plays the button sound when an answer is picked', async () => {
+      const wrapper = await reachQuiz()
+
+      await wrapper.findAll('button.option')[0]!.trigger('click')
+
+      expect(played).toEqual(['/sounds/button-pressed.mp3'])
+    })
+
+    it('does not play again for a second tap during the short pause', async () => {
+      const wrapper = await reachQuiz()
+      const options = wrapper.findAll('button.option')
+
+      await options[0]!.trigger('click')
+      await options[1]!.trigger('click')
+
+      expect(played).toHaveLength(1)
+    })
+
+    it('plays the button sound again for every question', async () => {
+      const wrapper = await reachQuiz()
+      await answerAll(wrapper)
+
+      expect(played).toEqual(Array.from({ length: questions.length }).fill('/sounds/button-pressed.mp3'))
+    })
+
+    it('keeps the quiz going when the browser blocks the sound', async () => {
+      behavior.isBlocked = true
+      const wrapper = await reachQuiz()
+
+      await wrapper.findAll('button.option')[0]!.trigger('click')
+      await vi.advanceTimersByTimeAsync(300)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain(`ข้อ 2 / ${questions.length}`)
+    })
+
+    it('plays the quack when the send button is pressed', async () => {
+      const wrapper = await reachResult()
+
+      await sendButton(wrapper).trigger('click')
+
+      expect(played).toEqual(['/sounds/duck-quack.mp3'])
+    })
+
+    it('quacks only once when the send button is pressed twice', async () => {
+      const wrapper = await reachResult()
+      const button = sendButton(wrapper)
+
+      await button.trigger('click')
+      await button.trigger('click')
+
+      expect(played).toEqual(['/sounds/duck-quack.mp3'])
+    })
+
+    it('still sends the duck when the browser blocks the quack', async () => {
+      const wrapper = await reachResult()
+      behavior.isBlocked = true
+
+      await sendButton(wrapper).trigger('click')
+      await vi.waitFor(() => expect(navigateToMock).toHaveBeenCalledWith('/share?sent=1'))
+    })
+  })
 })

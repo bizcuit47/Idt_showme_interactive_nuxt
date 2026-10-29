@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MAX_NICKNAME_LENGTH } from '~/constants'
+import { MAX_NICKNAME_LENGTH, SOUNDS } from '~/constants'
 import { getAvatar } from '~/data/avatars'
 import { questions } from '~/data/questions'
 import { nicknameErrorText, validateNickname } from '~/utils/nickname'
@@ -12,6 +12,8 @@ const optionPauseMs = 280
 const calculatingMs = 1600
 
 const me = useMe()
+const { play: playButtonSound } = useSound(SOUNDS.buttonPressed)
+const { play: playQuack } = useSound(SOUNDS.duckQuack)
 
 const step = ref<Step>('intro')
 const nickname = ref('')
@@ -46,6 +48,7 @@ function pick(optionIndex: number) {
   if (pickedIndex.value !== undefined)
     return
   pickedIndex.value = optionIndex
+  playButtonSound()
   setTimeout(goNext, optionPauseMs)
 }
 
@@ -96,6 +99,7 @@ async function send() {
     return
   isSending.value = true
   sendError.value = ''
+  playQuack()
   try {
     await sendDuck(me.value)
     navigateTo('/share?sent=1')

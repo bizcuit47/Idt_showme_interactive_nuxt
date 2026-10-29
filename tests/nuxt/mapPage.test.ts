@@ -147,4 +147,95 @@ describe('map page', () => {
       expect(wrapper.find('button.map-back').exists()).toBe(true)
     })
   })
+
+  describe('background music', () => {
+    const instances: FakeAudio[] = []
+    const behavior = { blockedPlays: 0 }
+
+    class FakeAudio {
+      source: string
+      loop = false
+      volume = 1
+      playCount = 0
+      isPaused = false
+
+      constructor(source: string) {
+        this.source = source
+        instances.push(this)
+      }
+
+      play() {
+        this.playCount++
+        this.isPaused = false
+        if (behavior.blockedPlays > 0) {
+          behavior.blockedPlays--
+          return Promise.reject(new Error('blocked'))
+        }
+        return Promise.resolve()
+      }
+
+      pause() {
+        this.isPaused = true
+      }
+    }
+
+    beforeEach(() => {
+      instances.length = 0
+      behavior.blockedPlays = 0
+      vi.stubGlobal('Audio', FakeAudio)
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('starts a looping, softened track when the map opens', async () => {
+      await mountPage('/map')
+
+      expect(instances).toHaveLength(1)
+      expect(instances[0]!.source).toBe('/sounds/catch-the-star.mp3')
+      expect(instances[0]!.loop).toBe(true)
+      expect(instances[0]!.volume).toBeLessThanOrEqual(0.5)
+      expect(instances[0]!.playCount).toBe(1)
+    })
+
+    it('plays the same track on the kiosk map', async () => {
+      await mountPage('/map?kiosk=1')
+
+      expect(instances).toHaveLength(1)
+      expect(instances[0]!.source).toBe('/sounds/catch-the-star.mp3')
+      expect(instances[0]!.playCount).toBe(1)
+    })
+
+    it('waits for the first touch when the browser blocks autoplay', async () => {
+      behavior.blockedPlays = 1
+      await mountPage('/map?kiosk=1')
+      expect(instances[0]!.playCount).toBe(1)
+
+      window.dispatchEvent(new Event('pointerdown'))
+      await flushPromises()
+
+      expect(instances).toHaveLength(1)
+      expect(instances[0]!.playCount).toBe(2)
+    })
+
+    it('stops the music when the map is closed', async () => {
+      const wrapper = await mountPage('/map')
+
+      wrapper.unmount()
+
+      expect(instances[0]!.isPaused).toBe(true)
+    })
+
+    it('does not start the music from a late touch after the map is closed', async () => {
+      behavior.blockedPlays = 1
+      const wrapper = await mountPage('/map')
+      wrapper.unmount()
+
+      window.dispatchEvent(new Event('pointerdown'))
+      await flushPromises()
+
+      expect(instances[0]!.playCount).toBe(1)
+    })
+  })
 })

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { WalkBounds } from '~/types'
 
+import { SOUNDS } from '~/constants'
+
 const stageWidth = 1080
 const stageHeight = 1920
 const walkMarginX = 140
@@ -40,6 +42,8 @@ const backStyle = computed(() => ({
 }))
 
 const { ducks, addDuck, removeDuck } = useDuckField()
+
+useBackgroundMusic(SOUNDS.backgroundMusic)
 
 useDuckFeed((duck) => {
   addDuck({
