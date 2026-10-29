@@ -2,6 +2,7 @@ import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-uti
 import { flushPromises } from '@vue/test-utils'
 import { createError, readBody } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MAX_NICKNAME_LENGTH } from '~/constants'
 import { questions } from '~/data/questions'
 import IndexPage from '~/pages/index.vue'
 
@@ -91,7 +92,7 @@ describe('quiz page', () => {
   it('limits the nickname field length', async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.find('input.nickname-input').attributes('maxlength')).toBe('16')
+    expect(wrapper.find('input.nickname-input').attributes('maxlength')).toBe(String(MAX_NICKNAME_LENGTH))
   })
 
   it('shows the first question after a valid nickname', async () => {
