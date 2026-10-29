@@ -2,6 +2,7 @@ import { mockNuxtImport, mountSuspended, registerEndpoint } from '@nuxt/test-uti
 import { flushPromises } from '@vue/test-utils'
 import { createError, readBody } from 'h3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MAX_NICKNAME_LENGTH } from '~/constants'
 import { questions } from '~/data/questions'
 import IndexPage from '~/pages/index.vue'
 
@@ -62,6 +63,73 @@ describe('quiz page', () => {
     expect(wrapper.findAll('button.option')).toHaveLength(0)
   })
 
+  describe('nickname counter', () => {
+    function counter(wrapper: Awaited<ReturnType<typeof mountPage>>) {
+      return wrapper.find('.nickname-count')
+    }
+
+    it('starts at zero of the limit', async () => {
+      const wrapper = await mountPage()
+
+      expect(counter(wrapper).text()).toBe(`0/${MAX_NICKNAME_LENGTH}`)
+    })
+
+    it('counts the characters as they are typed', async () => {
+      const wrapper = await mountPage()
+      const input = wrapper.find('input.nickname-input')
+
+      await input.setValue('Mai')
+      expect(counter(wrapper).text()).toBe(`3/${MAX_NICKNAME_LENGTH}`)
+
+      await input.setValue('Maiii')
+      expect(counter(wrapper).text()).toBe(`5/${MAX_NICKNAME_LENGTH}`)
+    })
+
+    it('counts every Thai character, vowels and tone marks included', async () => {
+      const wrapper = await mountPage()
+
+      await wrapper.find('input.nickname-input').setValue('มะลิ')
+
+      expect(counter(wrapper).text()).toBe(`4/${MAX_NICKNAME_LENGTH}`)
+    })
+
+    it('goes back down when characters are deleted', async () => {
+      const wrapper = await mountPage()
+      const input = wrapper.find('input.nickname-input')
+
+      await input.setValue('Maiii')
+      await input.setValue('Ma')
+
+      expect(counter(wrapper).text()).toBe(`2/${MAX_NICKNAME_LENGTH}`)
+    })
+
+    it('is highlighted only when the limit is reached', async () => {
+      const wrapper = await mountPage()
+      const input = wrapper.find('input.nickname-input')
+
+      await input.setValue('a'.repeat(MAX_NICKNAME_LENGTH - 1))
+      expect(counter(wrapper).classes()).not.toContain('nickname-count-full')
+
+      await input.setValue('a'.repeat(MAX_NICKNAME_LENGTH))
+      expect(counter(wrapper).classes()).toContain('nickname-count-full')
+      expect(counter(wrapper).text()).toBe(`${MAX_NICKNAME_LENGTH}/${MAX_NICKNAME_LENGTH}`)
+    })
+
+    it('goes back to zero after playing again', async () => {
+      const wrapper = await mountPage()
+      await typeNickname(wrapper, 'มะลิ')
+      await answerAll(wrapper)
+      await vi.advanceTimersByTimeAsync(2000)
+      await flushPromises()
+
+      const playAgain = wrapper.findAll('button').find(button => button.text() === 'เล่นใหม่')!
+      await playAgain.trigger('click')
+      await flushPromises()
+
+      expect(counter(wrapper).text()).toBe(`0/${MAX_NICKNAME_LENGTH}`)
+    })
+  })
+
   it('asks for a nickname when it is empty', async () => {
     const wrapper = await mountPage()
     await typeNickname(wrapper, '   ')
@@ -91,7 +159,7 @@ describe('quiz page', () => {
   it('limits the nickname field length', async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.find('input.nickname-input').attributes('maxlength')).toBe('16')
+    expect(wrapper.find('input.nickname-input').attributes('maxlength')).toBe(String(MAX_NICKNAME_LENGTH))
   })
 
   it('shows the first question after a valid nickname', async () => {

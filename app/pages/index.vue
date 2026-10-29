@@ -24,6 +24,8 @@ const pickedIndex = ref<number>()
 const isSending = ref(false)
 const sendError = ref('')
 
+const nicknameLength = computed(() => [...nickname.value].length)
+const isNicknameFull = computed(() => nicknameLength.value >= MAX_NICKNAME_LENGTH)
 const question = computed(() => questions[currentIndex.value]!)
 const progressPercent = computed(() => Math.round((currentIndex.value / questions.length) * 100))
 const avatar = computed(() => me.value ? getAvatar(me.value.avatarType) : undefined)
@@ -139,14 +141,19 @@ function playAgain() {
             </p>
           </div>
           <form flex="~ col" gap-4 @submit.prevent="start">
-            <input
-              v-model="nickname"
-              class="nickname-input"
-              type="text"
-              placeholder="ใส่ชื่อเล่นของคุณ"
-              autocomplete="off"
-              :maxlength="MAX_NICKNAME_LENGTH"
-            >
+            <div flex="~ col" gap-2>
+              <input
+                v-model="nickname"
+                class="nickname-input"
+                type="text"
+                placeholder="ใส่ชื่อเล่นของคุณ"
+                autocomplete="off"
+                :maxlength="MAX_NICKNAME_LENGTH"
+              >
+              <p class="nickname-count" :class="{ 'nickname-count-full': isNicknameFull }" aria-live="polite">
+                {{ nicknameLength }}/{{ MAX_NICKNAME_LENGTH }}
+              </p>
+            </div>
             <p v-if="nameError" class="neo-pill" self-start>
               {{ nameError }}
             </p>
@@ -285,6 +292,18 @@ function playAgain() {
   background: var(--fw-yellow);
   box-shadow: 0 0 0 0 #000;
   transform: translate(4px, 4px);
+}
+
+.nickname-count {
+  margin: 0;
+  color: rgb(0 0 0 / 0.55);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.nickname-count-full {
+  color: #000;
 }
 
 .name-pill {
