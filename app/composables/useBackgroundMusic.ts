@@ -1,4 +1,4 @@
-const retryEvents = ['pointerdown', 'keydown'] as const
+const retryEvents = ['pointerdown', 'pointerup', 'keydown'] as const
 
 export function useBackgroundMusic(source: string, volume = 0.4) {
   let music: HTMLAudioElement | undefined
