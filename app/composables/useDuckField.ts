@@ -17,13 +17,14 @@ export const maxDucks = MAX_MAP_DUCKS
 export function useDuckField() {
   const ducks = ref<FieldDuck[]>([])
 
-  function addDuck(duck: Omit<FieldDuck, 'isLeaving'>) {
+  function addDuck(duck: Omit<FieldDuck, 'isLeaving'>): boolean {
     if (ducks.value.some(existing => existing.id === duck.id))
-      return
+      return false
     ducks.value.push({ ...duck, isLeaving: false })
     const staying = ducks.value.filter(existing => !existing.isLeaving)
     for (const oldest of staying.slice(0, Math.max(0, staying.length - maxDucks)))
       oldest.isLeaving = true
+    return true
   }
 
   function removeDuck(id: string) {

@@ -148,7 +148,7 @@ describe('map page', () => {
     })
   })
 
-  describe('background music', () => {
+  describe('sounds', () => {
     const instances: FakeAudio[] = []
     const behavior = { blockedPlays: 0 }
 
@@ -179,6 +179,14 @@ describe('map page', () => {
       }
     }
 
+    function music() {
+      return instances.filter(audio => audio.source === '/sounds/catch-the-star.mp3')
+    }
+
+    function quack() {
+      return instances.filter(audio => audio.source === '/sounds/duck-quack.mp3')
+    }
+
     beforeEach(() => {
       instances.length = 0
       behavior.blockedPlays = 0
@@ -192,31 +200,31 @@ describe('map page', () => {
     it('starts a looping, softened track when the map opens', async () => {
       await mountPage('/map')
 
-      expect(instances).toHaveLength(1)
-      expect(instances[0]!.source).toBe('/sounds/catch-the-star.mp3')
-      expect(instances[0]!.loop).toBe(true)
-      expect(instances[0]!.volume).toBeLessThanOrEqual(0.5)
-      expect(instances[0]!.playCount).toBe(1)
+      expect(music()).toHaveLength(1)
+      expect(music()[0]!.source).toBe('/sounds/catch-the-star.mp3')
+      expect(music()[0]!.loop).toBe(true)
+      expect(music()[0]!.volume).toBeLessThanOrEqual(0.5)
+      expect(music()[0]!.playCount).toBe(1)
     })
 
     it('plays the same track on the kiosk map', async () => {
       await mountPage('/map?kiosk=1')
 
-      expect(instances).toHaveLength(1)
-      expect(instances[0]!.source).toBe('/sounds/catch-the-star.mp3')
-      expect(instances[0]!.playCount).toBe(1)
+      expect(music()).toHaveLength(1)
+      expect(music()[0]!.source).toBe('/sounds/catch-the-star.mp3')
+      expect(music()[0]!.playCount).toBe(1)
     })
 
     it('waits for the first touch when the browser blocks autoplay', async () => {
       behavior.blockedPlays = 1
       await mountPage('/map?kiosk=1')
-      expect(instances[0]!.playCount).toBe(1)
+      expect(music()[0]!.playCount).toBe(1)
 
       window.dispatchEvent(new Event('pointerdown'))
       await flushPromises()
 
-      expect(instances).toHaveLength(1)
-      expect(instances[0]!.playCount).toBe(2)
+      expect(music()).toHaveLength(1)
+      expect(music()[0]!.playCount).toBe(2)
     })
 
     it('also starts after a finger lift, which is what a touch screen counts as a tap', async () => {
@@ -226,7 +234,7 @@ describe('map page', () => {
       window.dispatchEvent(new Event('pointerup'))
       await flushPromises()
 
-      expect(instances[0]!.playCount).toBe(2)
+      expect(music()[0]!.playCount).toBe(2)
     })
 
     it('starts after a key press when autoplay is blocked', async () => {
@@ -236,7 +244,7 @@ describe('map page', () => {
       window.dispatchEvent(new Event('keydown'))
       await flushPromises()
 
-      expect(instances[0]!.playCount).toBe(2)
+      expect(music()[0]!.playCount).toBe(2)
     })
 
     it('starts only once when several taps arrive together', async () => {
@@ -247,7 +255,7 @@ describe('map page', () => {
       window.dispatchEvent(new Event('pointerup'))
       await flushPromises()
 
-      expect(instances[0]!.playCount).toBe(2)
+      expect(music()[0]!.playCount).toBe(2)
     })
 
     it('stops the music when the map is closed', async () => {
@@ -255,7 +263,7 @@ describe('map page', () => {
 
       wrapper.unmount()
 
-      expect(instances[0]!.isPaused).toBe(true)
+      expect(music()[0]!.isPaused).toBe(true)
     })
 
     it('does not start the music from a late touch after the map is closed', async () => {
@@ -266,7 +274,64 @@ describe('map page', () => {
       window.dispatchEvent(new Event('pointerdown'))
       await flushPromises()
 
-      expect(instances[0]!.playCount).toBe(1)
+      expect(music()[0]!.playCount).toBe(1)
+    })
+
+    describe('when a duck arrives', () => {
+      it('stays quiet for the ducks already on the map when it opens', async () => {
+        feed.ducks = [duck(1), duck(2), duck(3)]
+        await mountPage('/map')
+
+        expect(quack()).toHaveLength(1)
+        expect(quack()[0]!.playCount).toBe(0)
+      })
+
+      it('quacks when a new duck arrives after the map opened', async () => {
+        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+        feed.ducks = [duck(1)]
+        await mountPage('/map')
+
+        feed.ducks = [duck(2)]
+        await vi.advanceTimersByTimeAsync(3000)
+        await flushPromises()
+
+        expect(quack()[0]!.playCount).toBe(1)
+      })
+
+      it('quacks for the first duck even when the map was empty at the start', async () => {
+        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+        await mountPage('/map')
+
+        feed.ducks = [duck(1)]
+        await vi.advanceTimersByTimeAsync(3000)
+        await flushPromises()
+
+        expect(quack()[0]!.playCount).toBe(1)
+      })
+
+      it('does not quack again when the server repeats a duck', async () => {
+        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+        await mountPage('/map')
+        feed.ducks = [duck(1)]
+        await vi.advanceTimersByTimeAsync(3000)
+        await flushPromises()
+
+        await vi.advanceTimersByTimeAsync(3000)
+        await flushPromises()
+
+        expect(quack()[0]!.playCount).toBe(1)
+      })
+
+      it('quacks on the kiosk map too', async () => {
+        vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+        await mountPage('/map?kiosk=1')
+
+        feed.ducks = [duck(1)]
+        await vi.advanceTimersByTimeAsync(3000)
+        await flushPromises()
+
+        expect(quack()[0]!.playCount).toBe(1)
+      })
     })
   })
 })
