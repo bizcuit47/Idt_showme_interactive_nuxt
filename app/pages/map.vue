@@ -5,8 +5,8 @@ import { SOUNDS } from '~/constants'
 
 const stageWidth = 1080
 const stageHeight = 1920
-const walkMarginX = 140
-const walkMaxY = 1740
+const walkMarginX = 200
+const walkMaxY = 1660
 const walkMinY = 1250
 const walkHeadroom = 280
 const walkMinDepth = 120
